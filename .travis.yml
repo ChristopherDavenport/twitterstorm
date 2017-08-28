@@ -3,7 +3,6 @@ language: scala
 
 scala:
   - 2.12.3
-  - 2.11.11
 
 before_cache:
   - find $HOME/.sbt -name "*.lock" -type f -delete
