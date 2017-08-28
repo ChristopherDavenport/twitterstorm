@@ -1,0 +1,10 @@
+target/
+
+# vim
+*.sw?
+
+# Intellij
+.idea/
+
+# Ignore [ce]tags files
+tags
