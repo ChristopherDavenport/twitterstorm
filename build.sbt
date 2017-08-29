@@ -10,12 +10,19 @@ scalaVersion := "2.12.3"
 
 resolvers += Resolver.sonatypeRepo("snapshots")
 
-val http4sVersion = "0.18.0-M1"
+val http4sVersion = "0.18.0-SNAPSHOT"
+val circeVersion = "0.9.0-M1"
+val pureConfigVersion = "0.8.0"
 
 libraryDependencies ++= Seq(
-  "org.http4s" %% "http4s-dsl" % http4sVersion,
-  "org.http4s" %% "http4s-blaze-server" % http4sVersion,
-  "org.http4s" %% "http4s-blaze-client" % http4sVersion
+  "org.http4s"            %% "http4s-circe"         % http4sVersion,
+  "org.http4s"            %% "http4s-dsl"           % http4sVersion,
+  "org.http4s"            %% "http4s-blaze-server"  % http4sVersion,
+  "org.http4s"            %% "http4s-blaze-client"  % http4sVersion,
+  "io.circe"              %% "circe-generic"        % circeVersion,
+  "io.circe"              %% "circe-parser"         % circeVersion,
+  "io.circe"              %% "circe-streaming"      % circeVersion,
+  "com.github.pureconfig" %% "pureconfig"           % pureConfigVersion
 )
 
 
@@ -42,7 +49,7 @@ scalacOptions ++= Seq(
   "-language:implicitConversions",     // Allow definition of implicit functions called views
   "-unchecked",                        // Enable additional warnings where generated code depends on assumptions.
   "-Xcheckinit",                       // Wrap field accessors to throw an exception on uninitialized access.
-  "-Xfatal-warnings",                  // Fail the compilation if there are any warnings.
+//  "-Xfatal-warnings",                  // Fail the compilation if there are any warnings.
   "-Xfuture",                          // Turn on future language features.
   "-Xlint:adapted-args",               // Warn if an argument list is modified to match the receiver.
   "-Xlint:by-name-right-associative",  // By-name parameter of right associative operator.
@@ -71,7 +78,7 @@ scalacOptions ++= Seq(
   "-Ywarn-nullary-unit",               // Warn when nullary methods return Unit.
   "-Ywarn-numeric-widen",              // Warn when numerics are widened.
   "-Ywarn-unused:implicits",           // Warn if an implicit parameter is unused.
-  "-Ywarn-unused:imports",             // Warn if an import selector is not referenced.
+//  "-Ywarn-unused:imports",             // Warn if an import selector is not referenced.
   "-Ywarn-unused:locals",              // Warn if a local definition is unused.
   "-Ywarn-unused:params",              // Warn if a value parameter is unused.
   "-Ywarn-unused:patvars",             // Warn if a variable bound in a pattern is unused.
