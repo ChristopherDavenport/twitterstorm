@@ -1,6 +1,21 @@
 package tech.christopherdavenport.twitterstorm
 
-class ModelSpec {
+import cats.effect.IO
+import cats._
+import cats.implicits._
+import io.circe.ParsingFailure
+import org.http4s.ParseFailure
+import org.specs2.mutable.Specification
+import tech.christopherdavenport.twitterstorm.twitter._
+
+class ModelSpec extends Specification {
+
+  val badBasic : BasicTweet =  BasicTweet(
+  "BAD MESSAGE",
+    Entities(List.empty[Hashtag], List.empty[Url], List.empty[UserMention], List.empty[Symbol])
+  )
+
+
 
   val exampleTweet: String =
     """{
@@ -92,5 +107,55 @@ class ModelSpec {
       |
       |
     """.stripMargin
+
+
+  "BasicTweet Decoder" should {
+    "decode a valid Tweet through parsing" in {
+      val tweetParser = fs2.Stream.emit(io.circe.parser.parse(exampleTweet))
+        .covary[IO]
+        .through(Server.tweetPipe)
+        .runLast
+        .unsafeRunSync()
+        .get
+
+      tweetParser should beRight
+
+    }
+
+    "decode into a matching tweet" in {
+      val tweetParser = fs2.Stream.emit(io.circe.parser.parse(exampleTweet))
+        .covary[IO]
+        .through(Server.tweetPipe)
+        .runLast
+        .unsafeRunSync()
+        .get
+
+      val basicTweet = BasicTweet(
+        "J'cogite trop",
+        Entities(List.empty[Hashtag], List.empty[Url], List.empty[UserMention], List.empty[Symbol])
+      )
+
+
+      val resultTweet = tweetParser.getOrElse(badBasic)
+      val result: Boolean = resultTweet === basicTweet
+
+      result should beTrue
+    }
+
+    "fail to decode a delete response" in {
+      val tweetParser = fs2.Stream.emit(io.circe.parser.parse(deleteExample))
+        .covary[IO]
+        .through(Server.tweetPipe)
+        .runLast
+        .unsafeRunSync()
+        .get
+
+      tweetParser should beLeft
+    }
+
+
+  }
+
+
 
 }
