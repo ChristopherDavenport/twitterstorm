@@ -1,4 +1,4 @@
-package tech.christopherdavenport.twitterstorm
+package tech.christopherdavenport.twitterstorm.authentication
 
 case class TwitterAuthentication(
                                 consumerKey: String,

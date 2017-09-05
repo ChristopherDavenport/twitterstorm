@@ -4,7 +4,6 @@ import cats.effect.IO
 import cats._
 import cats.implicits._
 import io.circe.ParsingFailure
-import org.http4s.ParseFailure
 import org.specs2.mutable.Specification
 import tech.christopherdavenport.twitterstorm.twitter._
 
@@ -14,8 +13,6 @@ class ModelSpec extends Specification {
   "BAD MESSAGE",
     Entities(List.empty[Hashtag], List.empty[Url], List.empty[UserMention], List.empty[Symbol])
   )
-
-
 
   val exampleTweet: String =
     """{
@@ -113,7 +110,7 @@ class ModelSpec extends Specification {
     "decode a valid Tweet through parsing" in {
       val tweetParser = fs2.Stream.emit(io.circe.parser.parse(exampleTweet))
         .covary[IO]
-        .through(Server.tweetPipe)
+        .through(Client.tweetPipe)
         .runLast
         .unsafeRunSync()
         .get
@@ -125,7 +122,7 @@ class ModelSpec extends Specification {
     "decode into a matching tweet" in {
       val tweetParser = fs2.Stream.emit(io.circe.parser.parse(exampleTweet))
         .covary[IO]
-        .through(Server.tweetPipe)
+        .through(Client.tweetPipe)
         .runLast
         .unsafeRunSync()
         .get
@@ -145,7 +142,7 @@ class ModelSpec extends Specification {
     "fail to decode a delete response" in {
       val tweetParser = fs2.Stream.emit(io.circe.parser.parse(deleteExample))
         .covary[IO]
-        .through(Server.tweetPipe)
+        .through(Client.tweetPipe)
         .runLast
         .unsafeRunSync()
         .get
