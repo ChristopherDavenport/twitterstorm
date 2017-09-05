@@ -9,7 +9,29 @@ import util._
 object TwitterStormApp extends StreamApp[IO] {
 
   def stream(args: List[String], requestShutdown: IO[Unit]): Stream[IO, Nothing] = {
-    Client.clientStream.observe(printSink).drain
+    val tweets = Client.clientStream.observe(printSink)
+    val port = 8080
+    val ip = "0.0.0.0"
+    Server[IO](tweets).server(port, ip)
   }
 
 }
+
+
+//  val totalTweets : Stream[F, Signal[F, BigInt]] = Stream.eval(fs2.async.signalOf[F, BigInt](0))
+//
+//  val increaseTotalTweets : Sink[F, BasicTweet] = _.flatMap(_ =>
+//    totalTweets.flatMap(c => Stream.eval(c.modify(_ + 1))).map(_ => ())
+//  )
+//  val totalTweets : Stream[F, BigInt] =  {
+//    val counter = fs2.async.signalOf[F, BigInt](0)
+//    def increase1(signal: Signal[F, BigInt]) = signal.modify(_ + 1)
+//    def increase1Sink(signal: Signal[F, BigInt]) : Sink[F, BasicTweet] = s => s.flatMap{ _ =>
+//      Stream.eval(increase1(signal)).map(_ => ())
+//    }
+//
+//    Stream.eval(counter).flatMap(signal =>
+//      Stream.eval(tweets.observeAsync(100)(increase1Sink(signal)).run) >> signal.continuous
+//    )
+//  }
+//  val counter = Stream.eval(fs2.async.signalOf[F, BigInt](0))
