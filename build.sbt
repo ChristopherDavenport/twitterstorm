@@ -8,7 +8,10 @@ licenses += ("MIT", url("https://opensource.org/licenses/MIT"))
 
 scalaVersion := "2.12.3"
 
-resolvers += Resolver.sonatypeRepo("snapshots")
+resolvers ++= Seq(
+  Resolver.sonatypeRepo("snapshots"),
+  Resolver.sonatypeRepo("public")
+)
 
 val http4sVersion = "0.18.0-SNAPSHOT"
 val circeVersion = "0.9.0-M1"
