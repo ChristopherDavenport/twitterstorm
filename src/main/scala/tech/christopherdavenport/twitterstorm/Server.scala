@@ -44,9 +44,26 @@ case class Server[F[_]](tweets: Stream[F, BasicTweet])
   }
 
   def twitterService(reporter: TweetReporter[F]): HttpService[F] = HttpService[F] {
-    case GET -> Root / "total" =>
+    case GET -> Root / "total" / "tweets" =>
       reporter.totalTweets.flatMap{ i =>
-        Ok(Json.obj("total" -> Json.fromBigInt(i)))
+        Ok(Json.obj("tweets" -> Json.fromBigInt(i)))
+      }
+    case GET -> Root / "total" / "urls" =>
+      reporter.totalUrls.flatMap{ i =>
+        Ok(Json.obj("urls" -> Json.fromBigInt(i)))
+      }
+    case GET -> Root / "total"/ "pictures" =>
+      reporter.totalPictureUrls.flatMap{ i =>
+        Ok(Json.obj("pictures" -> Json.fromBigInt(i)))
+      }
+
+    case GET -> Root / "percent" / "urls" =>
+      reporter.percentUrls.flatMap{ case (numer, denom) =>
+        Ok(Json.obj("numerator" -> Json.fromBigInt(numer), "denominator" -> Json.fromBigInt(denom)))
+      }
+    case GET -> Root / "percent" / "pictures" =>
+      reporter.percentPictureUrls.flatMap{ case (numer, denom) =>
+        Ok(Json.obj("numerator" -> Json.fromBigInt(numer), "denominator" -> Json.fromBigInt(denom)))
       }
   }
 

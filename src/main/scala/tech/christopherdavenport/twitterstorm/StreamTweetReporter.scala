@@ -31,6 +31,23 @@ object StreamTweetReporter {
   }
 
 
+  def totatUrlCounterSignal[F[_]](tweets: Stream[F, BasicTweet], waitSize: Int)
+                                   (implicit F: Effect[F], ec: ExecutionContext): Stream[F, Signal[F, BigInt]] = {
+    totalTweetsWithPredicate(tweets, _.entities.urls.nonEmpty , waitSize)
+  }
+
+  def totatPictureUrlCounterSignal[F[_]](tweets: Stream[F, BasicTweet], waitSize: Int)
+                                 (implicit F: Effect[F], ec: ExecutionContext): Stream[F, Signal[F, BigInt]] = {
+    def containsPictureUrl(b: BasicTweet): Boolean = {
+      b.entities.urls.exists(url =>
+        url.url.contains("pic.twitter") || url.url.contains("instagram") ||
+        url.expanded_url.contains("pic.twitter") || url.expanded_url.contains("instagram")
+      )
+    }
+
+    totalTweetsWithPredicate(tweets, containsPictureUrl , waitSize)
+  }
+
   // Naive Attempt to Build Queue with all tweets and buffer indefinitely.
   //      queue <- Stream.eval(fs2.async.unboundedQueue[F, BasicTweet]).flatMap{ q =>
   //        val queueOp: Sink[F, fs2.async.mutable.Queue[F, BasicTweet]] = _.flatMap{q =>
@@ -46,11 +63,17 @@ object StreamTweetReporter {
   def apply[F[_]](s: Stream[F, BasicTweet], waitSize: Int)(implicit F: Effect[F], ec: ExecutionContext): Stream[F, TweetReporter[F]] = {
     for {
       totalSignal <- totalTweetCounterSignal(s, waitSize)
+      urlsSignal <- totatUrlCounterSignal(s, waitSize)
+      pictureUrlsSignal <- totatPictureUrlCounterSignal(s, waitSize)
 
     } yield {
       new TweetReporter[F] {
 
         override def totalTweets: F[BigInt] = totalSignal.get
+
+        override def totalUrls: F[BigInt] = urlsSignal.get
+
+        override def totalPictureUrls: F[BigInt] = pictureUrlsSignal.get
 
       }
     }
