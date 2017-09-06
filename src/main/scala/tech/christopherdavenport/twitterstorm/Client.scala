@@ -45,7 +45,7 @@ object Client {
       PooledHttp1Client[IO](1).streaming(signedRequest)(resp =>
         resp.body
           .through(jsonPipe[IO])
-//          .observe(printSink)
+          .observe(printSink)
           .through(tweetPipe)
           .through(filterLeft)
       )

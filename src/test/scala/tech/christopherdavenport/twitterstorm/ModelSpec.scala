@@ -10,8 +10,15 @@ import tech.christopherdavenport.twitterstorm.twitter._
 class ModelSpec extends Specification {
 
   val badBasic : BasicTweet =  BasicTweet(
+    "",
+    BigInt(0),
   "BAD MESSAGE",
-    Entities(List.empty[Hashtag], List.empty[Url], List.empty[UserMention], List.empty[Symbol])
+    Entities(List.empty[Hashtag], List.empty[Url], List.empty[UserMention], List.empty[Symbol]),
+  BigInt(0),
+  BigInt(0),
+  BigInt(0),
+  BigInt(0)
+
   )
 
   val exampleTweet: String =
@@ -128,8 +135,14 @@ class ModelSpec extends Specification {
         .get
 
       val basicTweet = BasicTweet(
+        "Tue Aug 29 01:06:11 +0000 2017",
+        BigInt("902336545302216706"),
         "J'cogite trop",
-        Entities(List.empty[Hashtag], List.empty[Url], List.empty[UserMention], List.empty[Symbol])
+        Entities(List.empty[Hashtag], List.empty[Url], List.empty[UserMention], List.empty[Symbol]),
+        BigInt(0),
+        BigInt(0),
+        BigInt(0),
+        BigInt(0)
       )
 
 
