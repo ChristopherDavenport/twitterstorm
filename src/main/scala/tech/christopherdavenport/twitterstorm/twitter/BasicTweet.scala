@@ -1,10 +1,14 @@
 package tech.christopherdavenport.twitterstorm.twitter
 
-import io.circe.{Decoder, HCursor}
+import io.circe.{Decoder, Encoder, HCursor, Json}
 import cats.{Eq, Show}
+import java.time._
+import java.time.format.DateTimeFormatter
+
+import scala.util.Try
 
 case class BasicTweet(
-                     created_at: String,
+                     created_at: ZonedDateTime,
                      id: BigInt,
                      text: String,
                      entities: Entities,
@@ -20,7 +24,7 @@ object BasicTweet {
 
     final def apply(c: HCursor): Decoder.Result[BasicTweet] = {
       for {
-        created <- c.downField("created_at").as[String]
+        created <- c.downField("created_at").as[ZonedDateTime]
         id <- c.downField("id").as[BigInt]
         text <- c.downField("text").as[String]
         entities <- c.downField("entities").as[Entities]
@@ -34,6 +38,14 @@ object BasicTweet {
       }
     }
 
+  }
+
+  implicit val ZonedDateTimeFormat : Encoder[ZonedDateTime] with Decoder[ZonedDateTime] =
+    new Encoder[ZonedDateTime] with Decoder[ZonedDateTime] {
+    override def apply(a: ZonedDateTime): Json = Encoder.encodeString(a.toString)
+
+    override def apply(c: HCursor): Decoder.Result[ZonedDateTime] =
+      Decoder.decodeString.map(str => ZonedDateTime.parse(str, DateTimeFormatter.ofPattern("EE MMM dd HH:mm:ss xxxx uuuu")))(c)
   }
 
   implicit val basicTweetEq : Eq[BasicTweet] = Eq.fromUniversalEquals[BasicTweet]
