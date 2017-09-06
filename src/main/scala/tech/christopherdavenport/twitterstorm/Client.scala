@@ -10,6 +10,7 @@ import org.http4s.{Headers, MediaType, Request, Uri}
 import org.http4s.client.blaze.PooledHttp1Client
 import org.http4s.dsl.io.POST
 import org.http4s.headers.`Content-Type`
+import pureconfig.error.ConfigReaderFailures
 import pureconfig.loadConfig
 import tech.christopherdavenport.twitterstorm.authentication.TwitterAuthentication
 import tech.christopherdavenport.twitterstorm.twitter.BasicTweet
@@ -20,8 +21,13 @@ import scala.concurrent.ExecutionContext
 object Client {
 
   val configStream : Stream[IO, TwitterAuthentication] = Stream.eval(
-    IO(loadConfig[TwitterAuthentication]("twitterstorm").getOrElse(throw new Error("Config Error")))
+    IO(loadConfig[TwitterAuthentication]("twitterstorm")).flatMap(validateOrError)
   )
+
+  def validateOrError(e: Either[ConfigReaderFailures, TwitterAuthentication]): IO[TwitterAuthentication] = e match {
+    case Left(errors) => IO.raiseError(new Throwable(errors.toList.map(_.description).toString()))
+    case Right(r) => IO(r)
+  }
 
   val twitterStreamRequest : Request[IO] = Request[IO](
     POST,
