@@ -44,17 +44,24 @@ object Client {
     }.flatMap( signedRequest =>
       PooledHttp1Client[IO](1).streaming(signedRequest)(resp =>
         resp.body
-          .through(jsonPipe[IO])
-          .observe(printSink)
-          .through(tweetPipe)
+          .through(jsonPipeS[IO])
+//          .observe(printSink)
+          .through(tweetPipeS[IO])
+//           .observe(printSink)
           .through(filterLeft)
+//          .observe(printSink)
       )
     )
   }
 
-  def jsonPipe[F[_]] : Pipe[F, Byte, Either[ParsingFailure, Json]] = s => {
-    s.through(fs2.text.utf8Decode[F]).through(fs2.text.lines[F]).map(parse)
+  def jsonPipeS[F[_]] : Pipe[F, Byte, Json] = s => {
+    s.through(circefs2.byteStreamParser[F])
   }
+
+  def tweetPipeS[F[_]]: Pipe[F, Json, Either[String, BasicTweet]] = _.map{ _.as[BasicTweet].leftMap(_.message)}
+
+  def jsonPipe[F[_]]: Pipe[F, Byte, Either[ParsingFailure, Json]] =
+    _.through(fs2.text.utf8Decode).through(fs2.text.lines).map(parse)
 
   def tweetPipe[F[_]]: Pipe[F, Either[ParsingFailure, Json], Either[String, BasicTweet]] = _.map{
     _.fold(e => Either.left(e.message), j => j.as[BasicTweet].leftMap(_.message))
