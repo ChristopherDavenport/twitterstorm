@@ -15,6 +15,8 @@ import tech.christopherdavenport.twitterstorm.authentication.TwitterAuthenticati
 import tech.christopherdavenport.twitterstorm.twitter.BasicTweet
 import tech.christopherdavenport.twitterstorm.util._
 
+import scala.concurrent.ExecutionContext
+
 object Client {
 
   val configStream : Stream[IO, TwitterAuthentication] = Stream.eval(
@@ -24,11 +26,12 @@ object Client {
   val twitterStreamRequest : Request[IO] = Request[IO](
     POST,
     Uri.unsafeFromString("https://stream.twitter.com/1.1/statuses/sample.json"),
-    //    Uri.unsafeFromString("https://stream.twitter.com/1.1/statuses/filter.json?track=trump&stall_warnings=true"),
+//    Uri.unsafeFromString("https://stream.twitter.com/1.1/statuses/filter.json?track=trump%2Cus%2Cmedia&stall_warnings=true"),
+//    Uri.unsafeFromString("https://stream.twitter.com/1.1/statuses/filter.json?track=dev%2Cprogramming%2Ctech%2Cjava%2Crust%2Cscala%2Cpython&stall_warnings=true"),
     headers = Headers(`Content-Type`(MediaType.`application/x-www-form-urlencoded`))
   )
 
-  val clientStream : Stream[IO, BasicTweet] = {
+  def clientStream(implicit ec: ExecutionContext) : Stream[IO, BasicTweet] = {
     configStream.flatMap { conf =>
       Stream.eval(
         authentication.userSign[IO](
@@ -42,6 +45,7 @@ object Client {
       PooledHttp1Client[IO](1).streaming(signedRequest)(resp =>
         resp.body
           .through(jsonPipe[IO])
+//          .observe(printSink)
           .through(tweetPipe)
           .through(filterLeft)
       )

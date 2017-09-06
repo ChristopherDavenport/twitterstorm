@@ -13,7 +13,7 @@ resolvers += Resolver.sonatypeRepo("snapshots")
 val http4sVersion = "0.18.0-SNAPSHOT"
 val circeVersion = "0.9.0-M1"
 val pureConfigVersion = "0.8.0"
-val specs2Version = ""
+val specs2Version = "4.0.0-RC4"
 
 libraryDependencies ++= Seq(
   "org.http4s"            %% "http4s-circe"         % http4sVersion,
@@ -24,7 +24,7 @@ libraryDependencies ++= Seq(
   "io.circe"              %% "circe-parser"         % circeVersion,
   "io.circe"              %% "circe-optics"         % circeVersion,
   "com.github.pureconfig" %% "pureconfig"           % pureConfigVersion,
-  "org.specs2"            %% "specs2-core"          % "4.0.0-RC4"             % Test
+  "org.specs2"            %% "specs2-core"          % specs2Version             % Test
 )
 
 trapExit in Global := false

@@ -9,7 +9,7 @@ import util._
 object TwitterStormApp extends StreamApp[IO] {
 
   def stream(args: List[String], requestShutdown: IO[Unit]): Stream[IO, Nothing] = {
-    val tweets = Client.clientStream.observe(printSink)
+    val tweets = Client.clientStream //.observeAsync(1000)(printSink)
     val port = 8080
     val ip = "0.0.0.0"
     Server[IO](tweets).server(port, ip)

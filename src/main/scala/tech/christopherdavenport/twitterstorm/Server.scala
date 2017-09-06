@@ -15,6 +15,7 @@ import org.http4s.circe._
 
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration._
+import util._
 
 case class Server[F[_]](tweets: Stream[F, BasicTweet])
                        (
@@ -78,10 +79,20 @@ case class Server[F[_]](tweets: Stream[F, BasicTweet])
         Stream.emit(signal)
           .observe(schedulerOp)
       }
-      serve <-  BlazeBuilder[F]
-        .bindHttp(port, ip)
-        .mountService(service(counter, timer, tweetCounter))
-        .serve
+      // Naive Attempt to Build Queue with all tweets and buffer indefinitely.
+      queue <- Stream.eval(fs2.async.unboundedQueue[F, BasicTweet]).flatMap{ q =>
+        val queueOp: Sink[F, fs2.async.mutable.Queue[F, BasicTweet]] = _.flatMap{q =>
+          Stream.eval(tweets.observe(q.enqueue).observe(printSink).run)
+        }
+        Stream.emit(q)
+          .observe(queueOp)
+      }
+      serve <-  Stream(queue).flatMap { _ =>
+        BlazeBuilder[F]
+          .bindHttp(port, ip)
+          .mountService(service(counter, timer, tweetCounter))
+          .serve
+      }
 
     } yield serve
 
