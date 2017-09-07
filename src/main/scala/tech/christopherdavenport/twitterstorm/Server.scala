@@ -65,6 +65,20 @@ case class Server[F[_]](tweets: Stream[F, BasicTweet])
       reporter.percentPictureUrls.flatMap{ case (numer, denom) =>
         Ok(Json.obj("numerator" -> Json.fromBigInt(numer), "denominator" -> Json.fromBigInt(denom)))
       }
+
+
+    case GET -> Root / "average" / "second" =>
+      reporter.tweetsPerSecond.flatMap(i =>
+        Ok(Json.obj("perSecond" -> Json.fromBigInt(i)))
+      )
+    case GET -> Root / "average" / "minute" =>
+      reporter.tweetsPerMinute.flatMap(i =>
+        Ok(Json.obj("perMinute" -> Json.fromBigInt(i)))
+      )
+    case GET -> Root / "average" / "hour" =>
+      reporter.tweetsPerHour.flatMap(i =>
+        Ok(Json.obj("perHour" -> Json.fromBigInt(i)))
+      )
   }
 
   def server(port: Int, ip: String) : Stream[F, Nothing] = {
@@ -72,7 +86,7 @@ case class Server[F[_]](tweets: Stream[F, BasicTweet])
       scheduler <- Scheduler[F](3)
       timer <- fs2.async.hold(Duration.Zero, scheduler.awakeEvery(10.millis))
       counter <- Stream.eval(fs2.async.signalOf[F, BigInt](0))
-      reporter <- StreamTweetReporter(tweets, 100)
+      reporter <- StreamTweetReporter(tweets, scheduler, 100)
       serve <- BlazeBuilder[F]
           .bindHttp(port, ip)
           .mountService(service(counter, timer), "/util")

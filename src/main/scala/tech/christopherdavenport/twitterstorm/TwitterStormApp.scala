@@ -12,7 +12,8 @@ object TwitterStormApp extends StreamApp[IO] {
     val tweets = Client.clientStream //.observeAsync(1000)(printSink)
     val port = 8080
     val ip = "0.0.0.0"
-    Server[IO](tweets).server(port, ip)
+
+    Server[IO](tweets).server(port, ip).concurrently(tweets)
   }
 
 }

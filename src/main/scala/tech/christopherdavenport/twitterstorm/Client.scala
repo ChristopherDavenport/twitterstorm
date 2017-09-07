@@ -48,12 +48,12 @@ object Client {
         )(twitterStreamRequest)
       )
     }.flatMap( signedRequest =>
-      PooledHttp1Client[IO](1).streaming(signedRequest)(resp =>
+      PooledHttp1Client[IO](5).streaming(signedRequest)(resp =>
         resp.body
           .through(jsonPipeS[IO])
 //          .observe(printSink)
           .through(tweetPipeS[IO])
-//           .observe(printSink)
+           .observe(printSink)
           .through(filterLeft)
 //          .observe(printSink)
       )

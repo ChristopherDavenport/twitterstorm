@@ -45,11 +45,11 @@ abstract class TweetReporter[F[_]](implicit F: Effect[F]){
 //
 //  def topEmojis: F[List[String]]
 //
-//  def tweetsPerSecond: F[BigInt]
-//
-//  def tweetsPerMinute: F[BigInt]
-//
-//  def tweetsPerHour: F[BigInt]
+  def tweetsPerSecond: F[BigInt]
+
+  def tweetsPerMinute: F[BigInt]
+
+  def tweetsPerHour: F[BigInt]
 
 }
 
