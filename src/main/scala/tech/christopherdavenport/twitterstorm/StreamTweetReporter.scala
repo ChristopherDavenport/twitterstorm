@@ -8,6 +8,7 @@ import com.twitter.algebird._
 import fs2.{Scheduler, Sink, Stream}
 import fs2.async.mutable.{Queue, Signal}
 import org.http4s.Uri.Host
+import tech.christopherdavenport.twitterstorm.emoji.EmojiParser
 import tech.christopherdavenport.twitterstorm.twitter.BasicTweet
 
 import scala.concurrent.ExecutionContext
@@ -50,6 +51,7 @@ object StreamTweetReporter {
 
     totalTweetsWithPredicate(tweets, containsPictureUrl)
   }
+
 
   def totalHashtagCounterSignal[F[_]](tweets: Stream[F, BasicTweet])
                                  (implicit F: Effect[F], ec: ExecutionContext): Stream[F, Signal[F, BigInt]] = {
@@ -156,6 +158,21 @@ object StreamTweetReporter {
     topTweetsBy(tweets, urls)
   }
 
+  def topEmojis[F[_]](tweets: Stream[F, BasicTweet], emojis: Map[Int, String])
+                     (implicit F: Effect[F], ec: ExecutionContext): Stream[F, fs2.async.immutable.Signal[F, TopCMS[String]]] = {
+    def emojiNames(tweet: BasicTweet): List[String] = {
+      tweet.text
+        .toList
+        .map(_.asDigit)
+        .map(emojis.get)
+        .flatMap{
+          case Some(v) => List(v)
+          case None => List.empty
+        }
+    }
+
+    topTweetsBy(tweets, emojiNames)
+  }
 
 
   // Naive Attempt to Build Queue with all tweets and buffer indefinitely.
@@ -173,6 +190,7 @@ object StreamTweetReporter {
   def apply[F[_]](s: Stream[F, BasicTweet], scheduler: Scheduler)
                  (implicit F: Effect[F], ec: ExecutionContext): Stream[F, TweetReporter[F]] = {
     for {
+      emojiMap <- EmojiParser.emojiMapFromFile
       totalSignal <- totalTweetCounterSignal(s)
       urlsSignal <- totalUrlCounterSignal(s)
       pictureUrlsSignal <- totalPictureUrlCounterSignal(s)
@@ -183,6 +201,7 @@ object StreamTweetReporter {
 
       topHTs <- topHashtags(s)
       topDs <- topDomains(s)
+      topEmoji <- topEmojis(s, emojiMap)
 
     } yield {
       new TweetReporter[F] {
@@ -195,6 +214,8 @@ object StreamTweetReporter {
 
         override def totalHashTags: F[BigInt] = topHTs.get.map(_.totalCount).map(BigInt(_))
 
+        override def totalEmojis: F[BigInt] = topEmoji.get.map(_.totalCount).map(BigInt(_))
+
         override def tweetsPerHour: F[BigInt] = avgTPH.get.map(BigInt(_))
 
         override def tweetsPerMinute: F[BigInt] = avgTPM.get.map(BigInt(_))
@@ -204,6 +225,8 @@ object StreamTweetReporter {
         override def topHashtags: F[List[String]] = topHTs.get.map(_.heavyHitters.toList)
 
         override def topDomains: F[List[String]] = topDs.get.map(_.heavyHitters.toList)
+
+        override def topEmojis: F[List[String]] = topEmoji.get.map(_.heavyHitters.toList)
 
       }
     }

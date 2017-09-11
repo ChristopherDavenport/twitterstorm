@@ -60,6 +60,10 @@ case class Server[F[_]](tweets: Stream[F, BasicTweet])
       reporter.totalHashTags.flatMap{ i =>
         Ok(Json.obj("hashtags" -> Json.fromBigInt(i)))
       }
+    case GET -> Root / "total" / "emojis" =>
+      reporter.totalEmojis.flatMap{ i =>
+        Ok(Json.obj("emojis" -> Json.fromBigInt(i)))
+      }
 
 
 
@@ -103,6 +107,13 @@ case class Server[F[_]](tweets: Stream[F, BasicTweet])
         val jsonValues = domains.map(Json.fromString)
         Ok(
           Json.obj("topDomains" -> Json.fromValues(jsonValues))
+        )
+      }
+    case GET -> Root / "top" / "emojis" =>
+      reporter.topEmojis.flatMap{emojis =>
+        val jsonValues = emojis.map(Json.fromString)
+        Ok(
+          Json.obj("topEmojis" -> Json.fromValues(jsonValues))
         )
       }
   }
