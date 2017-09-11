@@ -56,6 +56,12 @@ case class Server[F[_]](tweets: Stream[F, BasicTweet])
       reporter.totalPictureUrls.flatMap{ i =>
         Ok(Json.obj("pictures" -> Json.fromBigInt(i)))
       }
+    case GET -> Root / "total" / "hashtags" =>
+      reporter.totalHashTags.flatMap{ i =>
+        Ok(Json.obj("hashtags" -> Json.fromBigInt(i)))
+      }
+
+
 
     case GET -> Root / "percent" / "urls" =>
       reporter.percentUrls.flatMap{ case (numer, denom) =>
@@ -65,6 +71,11 @@ case class Server[F[_]](tweets: Stream[F, BasicTweet])
       reporter.percentPictureUrls.flatMap{ case (numer, denom) =>
         Ok(Json.obj("numerator" -> Json.fromBigInt(numer), "denominator" -> Json.fromBigInt(denom)))
       }
+    case GET -> Root / "percent" / "hashtags" =>
+      reporter.percentHashtags.flatMap{ case (numer, denom) =>
+        Ok(Json.obj("numerator" -> Json.fromBigInt(numer), "denominator" -> Json.fromBigInt(denom)))
+      }
+
 
 
     case GET -> Root / "average" / "second" =>
@@ -79,6 +90,21 @@ case class Server[F[_]](tweets: Stream[F, BasicTweet])
       reporter.tweetsPerHour.flatMap(i =>
         Ok(Json.obj("perHour" -> Json.fromBigInt(i)))
       )
+
+    case GET -> Root / "top" / "hashtags" =>
+      reporter.topHashtags.flatMap{hashtags =>
+        val jsonValues = hashtags.map(Json.fromString)
+        Ok(
+          Json.obj("topHashtags" -> Json.fromValues(jsonValues))
+        )
+      }
+    case GET -> Root / "top" / "domains" =>
+      reporter.topDomains.flatMap{domains =>
+        val jsonValues = domains.map(Json.fromString)
+        Ok(
+          Json.obj("topDomains" -> Json.fromValues(jsonValues))
+        )
+      }
   }
 
   def server(port: Int, ip: String) : Stream[F, Nothing] = {
@@ -86,7 +112,7 @@ case class Server[F[_]](tweets: Stream[F, BasicTweet])
       scheduler <- Scheduler[F](3)
       timer <- fs2.async.hold(Duration.Zero, scheduler.awakeEvery(10.millis))
       counter <- Stream.eval(fs2.async.signalOf[F, BigInt](0))
-      reporter <- StreamTweetReporter(tweets, scheduler, 100)
+      reporter <- StreamTweetReporter(tweets, scheduler)
       serve <- BlazeBuilder[F]
           .bindHttp(port, ip)
           .mountService(service(counter, timer), "/util")

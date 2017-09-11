@@ -31,8 +31,8 @@ object Client {
 
   val twitterStreamRequest : Request[IO] = Request[IO](
     POST,
-//    Uri.unsafeFromString("https://stream.twitter.com/1.1/statuses/sample.json"),
-    Uri.unsafeFromString("https://stream.twitter.com/1.1/statuses/filter.json?track=trump%2Cus%2Cmedia%2Cusa%2Camerica%2Cuk%2Cchina&stall_warnings=true"),
+    Uri.unsafeFromString("https://stream.twitter.com/1.1/statuses/sample.json"),
+//    Uri.unsafeFromString("https://stream.twitter.com/1.1/statuses/filter.json?track=trump%2Cus%2Cmedia%2Cusa%2Camerica%2Cuk%2Cchina&stall_warnings=true"),
 //    Uri.unsafeFromString("https://stream.twitter.com/1.1/statuses/filter.json?track=dev%2Cprogramming%2Ctech%2Cjava%2Crust%2Cscala%2Cpython&stall_warnings=true"),
     headers = Headers(`Content-Type`(MediaType.`application/x-www-form-urlencoded`))
   )
@@ -55,7 +55,7 @@ object Client {
           .through(tweetPipe[IO])
 //           .observe(printSink)
           .through(filterLeft)
-//          .observe(printSink)
+//          .observe(s => s.filter(_.entities.hashtags.nonEmpty).to(printSink))
       )
     )
   }

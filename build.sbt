@@ -27,6 +27,7 @@ libraryDependencies ++= Seq(
   "io.circe"              %% "circe-parser"         % circeVersion,
   "io.circe"              %% "circe-optics"         % circeVersion,
   "com.github.pureconfig" %% "pureconfig"           % pureConfigVersion,
+  "com.twitter"           %%  "algebird-core"            % "0.13.0",
   "org.specs2"            %% "specs2-core"          % specs2Version             % Test
 )
 
