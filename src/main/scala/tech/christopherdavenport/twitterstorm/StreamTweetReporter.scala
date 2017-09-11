@@ -66,7 +66,7 @@ object StreamTweetReporter {
         .dequeue
         .zip(currentTimeToRemove)
         .filter{ case (bt, zdt) => bt.created_at.isAfter(zdt)}
-          .observeAsync(waitSize)(_.map{case (bt, zdt) => (bt.created_at, zdt)}.to(printSink))
+//          .observeAsync(waitSize)(_.map{case (bt, zdt) => (bt.created_at, zdt)}.to(printSink))
         .map(_._1)
         .to(queue.enqueue)
 

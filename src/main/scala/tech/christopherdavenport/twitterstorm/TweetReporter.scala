@@ -38,13 +38,13 @@ abstract class TweetReporter[F[_]](implicit F: Effect[F]){
 //  } yield {
 //    (emojiTweets, tweets)
 //  }
-//
+
 //  def topHashtags: F[List[Hashtag]]
-//
+
 //  def topDomains: F[List[String]]
-//
+
 //  def topEmojis: F[List[String]]
-//
+
   def tweetsPerSecond: F[BigInt]
 
   def tweetsPerMinute: F[BigInt]

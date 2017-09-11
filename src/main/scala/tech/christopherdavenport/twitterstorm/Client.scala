@@ -50,10 +50,10 @@ object Client {
     }.flatMap( signedRequest =>
       PooledHttp1Client[IO](5).streaming(signedRequest)(resp =>
         resp.body
-          .through(jsonPipeS[IO])
-//          .observe(printSink)
-          .through(tweetPipeS[IO])
-           .observe(printSink)
+          .through(jsonPipe[IO])
+//          .observe(_.map(_.map(_.pretty(io.circe.Printer.noSpaces))).to(printSink))
+          .through(tweetPipe[IO])
+//           .observe(printSink)
           .through(filterLeft)
 //          .observe(printSink)
       )
