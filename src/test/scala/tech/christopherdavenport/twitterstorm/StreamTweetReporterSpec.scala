@@ -19,10 +19,10 @@ class StreamTweetReporterSpec extends Specification with ScalaCheck with Arbitra
   def runLogF[A](s: Stream[IO,A]): Future[Vector[A]] = (IO.shift >> s.runLog).unsafeToFuture
 
   def is = s2"""
-                totalTweetCounter $CountTotalTweets
+                totalTweetCounter $countTotalTweets
     """
 
-  def CountTotalTweets = {
+  def countTotalTweets = {
     prop{ (a: List[BasicTweet]) =>
       val stream = Stream.emits[BasicTweet](a)
       val f = StreamTweetReporter.totalTweetCounterSignal[IO](stream).concurrently(stream)

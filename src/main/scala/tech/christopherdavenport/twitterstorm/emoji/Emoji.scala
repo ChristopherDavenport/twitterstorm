@@ -40,7 +40,7 @@ object Emoji {
   def codePoint(string: String): Option[Int] = {
     val codePoint = Try(Integer.parseInt(string, 16))
       .recoverWith {
-        case e: NumberFormatException =>
+        case _ =>
           val stripped = string.replace("0x", "")
           Try(Integer.parseInt(stripped, 16))
       }
