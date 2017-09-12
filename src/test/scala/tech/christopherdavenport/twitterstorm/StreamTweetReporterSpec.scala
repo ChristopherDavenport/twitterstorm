@@ -25,7 +25,7 @@ class StreamTweetReporterSpec extends Specification with ScalaCheck with Arbitra
   def countTotalTweets = {
     prop{ (a: List[BasicTweet]) =>
       val stream = Stream.emits[BasicTweet](a)
-      val f = StreamTweetReporter.totalTweetCounterSignal[IO](stream).concurrently(stream)
+      val f = StreamTweetReporter.totalTweetCounterSignal[IO](stream)
 
       val listSize : BigInt = BigInt(a.size)
       val finalSize : BigInt = f.runLast.unsafeRunSync().get.get.unsafeRunSync()

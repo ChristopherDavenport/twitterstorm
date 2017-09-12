@@ -51,8 +51,8 @@ addCompilerPlugin("org.scalamacros" % "paradise" % "2.1.0" cross CrossVersion.fu
 
 cancelable in Global := true
 
-coursierUseSbtCredentials := true
-coursierChecksums := Nil      // workaround for nexus sync bugs
+//coursierUseSbtCredentials := true
+//coursierChecksums := Nil      // workaround for nexus sync bugs
 
 addCompilerPlugin("org.spire-math" % "kind-projector" % "0.9.3" cross CrossVersion.binary)
 
