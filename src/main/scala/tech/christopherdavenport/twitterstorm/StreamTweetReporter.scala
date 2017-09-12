@@ -23,11 +23,15 @@ object StreamTweetReporter {
       f: BasicTweet => BigInt)(
       implicit F: Effect[F],
       ec: ExecutionContext): Stream[F, Signal[F, BigInt]] = {
+    def alterSignalSink(signal: Signal[F, BigInt]): Sink[F, BasicTweet] = _.flatMap{ t =>
+      Stream.eval(signal.modify(_ + f(t))).drain
+    }
+
     Stream.eval(fs2.async.signalOf[F, BigInt](0)).flatMap { signal =>
       Stream
         .emit(signal)
         .concurrently(
-          tweets.flatMap(t => Stream.eval(signal.modify(_ + f(t))).map(_ => ()))
+          tweets.to(alterSignalSink(signal))
         )
     }
   }
