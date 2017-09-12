@@ -27,7 +27,6 @@ object EmojiParser {
     val json = resourceLines
       .through(stringArrayParser)
       .through(decoder[F, Emoji])
-      .filter(emoji => emoji.has_img_twitter.exists(identity))
       .filter(emoji => !emoji.unified.contains("-")) // Remove Multi Code Point For Initial Simplicity
       .map(emoji => Emoji.codePoint(emoji.unified) -> emoji)
       .filter(_._1.isDefined)

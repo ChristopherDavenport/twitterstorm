@@ -58,6 +58,18 @@ object StreamTweetReporter {
     totalTweetsWithPredicate(tweets, _.entities.hashtags.nonEmpty)
   }
 
+  def totalEmojiContainingSignal[F[_]](tweets: Stream[F, BasicTweet], emojis: Map[Int, String])
+                                      (implicit F: Effect[F], ec: ExecutionContext): Stream[F, Signal[F, BigInt]] = {
+    def containsEmoji(b: BasicTweet): Boolean = {
+
+      b.text.toList // Array Char
+        .map(_.toInt) // To Int Value
+        .map(emojis.get) // Option
+        .exists(_.isDefined)
+    }
+
+    totalTweetsWithPredicate(tweets, containsEmoji)
+  }
 
   /**
     * Tweets is an infinite Stream. I am attempting to get the Average Tweets Per Unit Duration. However As I
@@ -163,7 +175,7 @@ object StreamTweetReporter {
     def emojiNames(tweet: BasicTweet): List[String] = {
       tweet.text
         .toList
-        .map(_.asDigit)
+        .map(_.toInt)
         .map(emojis.get)
         .flatMap{
           case Some(v) => List(v)
@@ -195,6 +207,7 @@ object StreamTweetReporter {
       urlsSignal <- totalUrlCounterSignal(s)
       pictureUrlsSignal <- totalPictureUrlCounterSignal(s)
       hashtagSignal <- totalHashtagCounterSignal(s)
+      emojiContainingSignal <- totalEmojiContainingSignal(s, emojiMap)
       avgTPS <- averageTweetsPerSecond(s)
       avgTPM <- averageTweetsPerMinute(s)
       avgTPH <- averageTweetsPerHour(s)
@@ -215,6 +228,8 @@ object StreamTweetReporter {
         override def totalHashTags: F[BigInt] = topHTs.get.map(_.totalCount).map(BigInt(_))
 
         override def totalEmojis: F[BigInt] = topEmoji.get.map(_.totalCount).map(BigInt(_))
+
+        override def totalEmojiContainingTweets: F[BigInt] = emojiContainingSignal.get
 
         override def tweetsPerHour: F[BigInt] = avgTPH.get.map(BigInt(_))
 

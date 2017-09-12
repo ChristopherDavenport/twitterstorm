@@ -16,7 +16,7 @@ abstract class TweetReporter[F[_]](implicit F: Effect[F]){
 
   def totalHashTags: F[BigInt]
 
-//  def totalEmojiContainingTweets: F[BigInt]
+  def totalEmojiContainingTweets: F[BigInt]
 
   def totalEmojis: F[BigInt]
 
@@ -39,12 +39,12 @@ abstract class TweetReporter[F[_]](implicit F: Effect[F]){
     (pictureUrls, tweets)
   }
 
-//  def percentEmojiContaining: F[(BigInt, BigInt)] = for {
-//    tweets <- totalTweets
-//    emojiTweets <- totalEmojiContainingTweets
-//  } yield {
-//    (emojiTweets, tweets)
-//  }
+  def percentEmojiContaining: F[(BigInt, BigInt)] = for {
+    tweets <- totalTweets
+    emojiTweets <- totalEmojiContainingTweets
+  } yield {
+    (emojiTweets, tweets)
+  }
 
   def topHashtags: F[List[String]]
 
