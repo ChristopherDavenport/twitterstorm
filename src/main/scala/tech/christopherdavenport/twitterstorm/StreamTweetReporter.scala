@@ -18,18 +18,16 @@ import util._
 
 object StreamTweetReporter {
 
-  def totalTweetsWithPredicate[F[_]](
+  def totalTweetsWithValue[F[_]](
       tweets: Stream[F, BasicTweet],
-      p: BasicTweet => Boolean)(
+      f: BasicTweet => BigInt)(
       implicit F: Effect[F],
       ec: ExecutionContext): Stream[F, Signal[F, BigInt]] = {
     Stream.eval(fs2.async.signalOf[F, BigInt](0)).flatMap { signal =>
       Stream
         .emit(signal)
         .concurrently(
-          tweets.flatMap(t =>
-            if (p(t)) Stream.eval(signal.modify(_ + 1)).map(_ => ())
-            else Stream.empty)
+          tweets.flatMap(t => Stream.eval(signal.modify(_ + f(t))).map(_ => ()))
         )
     }
   }
@@ -37,31 +35,31 @@ object StreamTweetReporter {
   def totalTweetCounterSignal[F[_]](tweets: Stream[F, BasicTweet])(
       implicit F: Effect[F],
       ec: ExecutionContext): Stream[F, Signal[F, BigInt]] =
-    totalTweetsWithPredicate(tweets, _ => true)
+    totalTweetsWithValue(tweets, _ => BigInt(1))
 
   def totalUrlCounterSignal[F[_]](tweets: Stream[F, BasicTweet])(
       implicit F: Effect[F],
       ec: ExecutionContext): Stream[F, Signal[F, BigInt]] =
-    totalTweetsWithPredicate(tweets, _.entities.urls.nonEmpty)
+    totalTweetsWithValue(tweets, _.entities.urls.size)
 
   def totalPictureUrlCounterSignal[F[_]](tweets: Stream[F, BasicTweet])(
       implicit F: Effect[F],
       ec: ExecutionContext): Stream[F, Signal[F, BigInt]] = {
-    def containsPictureUrl(b: BasicTweet): Boolean = {
-      b.entities.urls.exists(
+    def containsPictureUrl(b: BasicTweet): BigInt = {
+      b.entities.urls.count(
         url =>
           url.url.contains("pic.twitter") || url.url.contains("instagram") ||
             url.expanded_url.contains("pic.twitter") || url.expanded_url
             .contains("instagram"))
     }
 
-    totalTweetsWithPredicate(tweets, containsPictureUrl)
+    totalTweetsWithValue(tweets, containsPictureUrl)
   }
 
   def totalHashtagCounterSignal[F[_]](tweets: Stream[F, BasicTweet])(
       implicit F: Effect[F],
       ec: ExecutionContext): Stream[F, Signal[F, BigInt]] =
-    totalTweetsWithPredicate(tweets, _.entities.hashtags.nonEmpty)
+    totalTweetsWithValue(tweets, _.entities.hashtags.size)
 
   def totalEmojiContainingSignal[F[_]](
       tweets: Stream[F, BasicTweet],
@@ -75,8 +73,10 @@ object StreamTweetReporter {
         .map(emojis.get) // Option
         .exists(_.isDefined)
     }
+    def containsEmojiCount(b: BasicTweet): BigInt =
+      if (containsEmoji(b)) BigInt(1) else BigInt(0)
 
-    totalTweetsWithPredicate(tweets, containsEmoji)
+    totalTweetsWithValue(tweets, containsEmojiCount)
   }
 
   /**
@@ -248,7 +248,7 @@ object StreamTweetReporter {
           F.shift >> pictureUrlsSignal.get
 
         override def totalHashTags: F[BigInt] =
-          F.shift >> topHTs.get.map(_.totalCount).map(BigInt(_))
+          F.shift >> hashtagSignal.get
 
         override def totalEmojis: F[BigInt] =
           F.shift >> topEmoji.get.map(_.totalCount).map(BigInt(_))
