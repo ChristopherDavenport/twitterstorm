@@ -21,7 +21,6 @@ import util._
 case class Server[F[_]](tweets: Stream[F, BasicTweet])
                        (
                          implicit F : Effect[F],
-                         S: Semigroup[F[MaybeResponse[F]]],
                          ec: ExecutionContext
                        ) extends Http4sDsl[F]{
 

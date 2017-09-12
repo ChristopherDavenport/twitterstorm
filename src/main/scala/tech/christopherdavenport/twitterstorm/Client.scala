@@ -37,7 +37,7 @@ object Client {
     headers = Headers(`Content-Type`(MediaType.`application/x-www-form-urlencoded`))
   )
 
-  def clientStream(implicit ec: ExecutionContext) : Stream[IO, BasicTweet] = {
+  def clientStream : Stream[IO, BasicTweet] = {
     configStream.flatMap { conf =>
       Stream.eval(
         authentication.userSign[IO](
@@ -48,7 +48,7 @@ object Client {
         )(twitterStreamRequest)
       )
     }.flatMap( signedRequest =>
-      PooledHttp1Client[IO](5).streaming(signedRequest)(resp =>
+      PooledHttp1Client[IO](1).streaming(signedRequest)(resp =>
         resp.body
           .through(jsonPipe[IO])
 //          .observe(_.map(_.map(_.pretty(io.circe.Printer.noSpaces))).to(printSink))
