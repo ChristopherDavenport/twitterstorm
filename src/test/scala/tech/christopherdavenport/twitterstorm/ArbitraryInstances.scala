@@ -15,23 +15,27 @@ import scala.concurrent.Future
 
 trait ArbitraryInstances extends ArbInst {
 
-
-
-
-  implicit val arbZonedDateTime : Arbitrary[ZonedDateTime] = Arbitrary{
-    val min = ZonedDateTime.of(1900, 1, 1, 0, 0, 0, 0, ZoneId.of("UTC")).toInstant.toEpochMilli
-    val max = ZonedDateTime.of(9999, 12, 31, 23, 59, 59, 0, ZoneId.of("UTC")).toInstant.toEpochMilli
-    choose[Long](min, max).map(l => ZonedDateTime.ofInstant(Instant.ofEpochMilli(l), ZoneId.of("UTC")))
+  implicit val arbZonedDateTime: Arbitrary[ZonedDateTime] = Arbitrary {
+    val min = ZonedDateTime
+      .of(1900, 1, 1, 0, 0, 0, 0, ZoneId.of("UTC"))
+      .toInstant
+      .toEpochMilli
+    val max = ZonedDateTime
+      .of(9999, 12, 31, 23, 59, 59, 0, ZoneId.of("UTC"))
+      .toInstant
+      .toEpochMilli
+    choose[Long](min, max).map(l =>
+      ZonedDateTime.ofInstant(Instant.ofEpochMilli(l), ZoneId.of("UTC")))
   }
 
-  implicit val arbHashTag : Arbitrary[Hashtag] = Arbitrary{
+  implicit val arbHashTag: Arbitrary[Hashtag] = Arbitrary {
     for {
       hashtag <- arbString.arbitrary suchThat (_.length < 20)
       index <- Gen.choose(0, 120 - hashtag.length)
     } yield Hashtag(hashtag, List(index, index + hashtag.length))
   }
 
-  implicit val arbUrl: Arbitrary[Url] = Arbitrary{
+  implicit val arbUrl: Arbitrary[Url] = Arbitrary {
     for {
       ext <- arbString.arbitrary
       uri <- arbitraryUri.arbitrary
@@ -49,16 +53,17 @@ trait ArbitraryInstances extends ArbInst {
     }
   }
 
-  implicit val arbUserMention : Arbitrary[UserMention] = Arbitrary{
+  implicit val arbUserMention: Arbitrary[UserMention] = Arbitrary {
     for {
       name <- arbitrary[String]
       userN <- arbitrary[String]
       id <- arbitrary[BigInt]
       index <- Gen.choose(0, 120)
-    } yield UserMention(id, id.show, userN, name, List(index, index + userN.length))
+    } yield
+      UserMention(id, id.show, userN, name, List(index, index + userN.length))
   }
 
-  implicit val arbSymbol : Arbitrary[Symbol] = Arbitrary{
+  implicit val arbSymbol: Arbitrary[Symbol] = Arbitrary {
     for {
       text <- arbitrary[String]
       index <- Gen.choose(0, 120)
@@ -67,7 +72,7 @@ trait ArbitraryInstances extends ArbInst {
     }
   }
 
-  implicit val arbEntities : Arbitrary[Entities] = Arbitrary{
+  implicit val arbEntities: Arbitrary[Entities] = Arbitrary {
     for {
       hashtags <- listOf(arbitrary[Hashtag])
       urls <- listOf(arbitrary[Url])
@@ -78,7 +83,7 @@ trait ArbitraryInstances extends ArbInst {
     }
   }
 
-  implicit val arbBasicTweet : Arbitrary[BasicTweet] = Arbitrary{
+  implicit val arbBasicTweet: Arbitrary[BasicTweet] = Arbitrary {
     for {
       dateTime <- arbitrary[ZonedDateTime]
       id <- arbitrary[BigInt]
@@ -88,8 +93,16 @@ trait ArbitraryInstances extends ArbInst {
       replyC <- arbitrary[BigInt]
       retweetC <- arbitrary[BigInt]
       favoriteC <- arbitrary[BigInt]
-    } yield BasicTweet(dateTime, id, text, entities, quoteC, replyC, retweetC, favoriteC)
+    } yield
+      BasicTweet(
+        dateTime,
+        id,
+        text,
+        entities,
+        quoteC,
+        replyC,
+        retweetC,
+        favoriteC)
   }
-
 
 }

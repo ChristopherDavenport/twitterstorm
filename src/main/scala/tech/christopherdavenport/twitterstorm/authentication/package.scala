@@ -2,25 +2,22 @@ package tech.christopherdavenport.twitterstorm
 
 import cats.effect.{Effect, Sync}
 import org.http4s.Request
-import org.http4s.client.oauth1.{Consumer, Token, signRequest}
+import org.http4s.client.oauth1.{signRequest, Consumer, Token}
 
 package object authentication {
 
   def userSign[F[_]: Effect](
-                              consumerKey: String,
-                              consumerSecret: String,
-                              accessKey: String,
-                              accessToken: String
-                            )
-                            (req: Request[F]): F[Request[F]]  = {
+      consumerKey: String,
+      consumerSecret: String,
+      accessKey: String,
+      accessToken: String
+  )(req: Request[F]): F[Request[F]] = {
 
     val accessCredentialsToken = Token(accessKey, accessToken)
     val consumer = Consumer(consumerKey, consumerSecret)
 
     signRequest(req, consumer, None, None, Option(accessCredentialsToken))
   }
-
-
   //  val oauthRequest : Request[IO] = Request[IO](
   //    POST,
   //    Uri.unsafeFromString("https://api.twitter.com/oauth2/token"),

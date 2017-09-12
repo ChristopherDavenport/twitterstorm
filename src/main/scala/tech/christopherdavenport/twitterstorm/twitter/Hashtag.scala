@@ -5,11 +5,11 @@ import cats.Eq
 
 @JsonCodec
 case class Hashtag(
-                   text: String,
-                   indices: List[Int]
-                   )
+    text: String,
+    indices: List[Int]
+)
 
 object Hashtag {
 
-  implicit val hashTagEq : Eq[Hashtag] = Eq.fromUniversalEquals[Hashtag]
+  implicit val hashTagEq: Eq[Hashtag] = Eq.fromUniversalEquals[Hashtag]
 }

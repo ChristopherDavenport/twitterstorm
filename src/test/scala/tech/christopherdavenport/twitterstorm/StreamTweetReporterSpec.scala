@@ -12,23 +12,27 @@ import scala.concurrent.Future
 import scala.concurrent.duration._
 import scala.concurrent.ExecutionContext.Implicits.global
 
-class StreamTweetReporterSpec extends Specification with ScalaCheck with ArbitraryInstances {
+class StreamTweetReporterSpec
+    extends Specification
+    with ScalaCheck
+    with ArbitraryInstances {
 
   val timeout: FiniteDuration = 60.seconds
 
-  def runLogF[A](s: Stream[IO,A]): Future[Vector[A]] = (IO.shift >> s.runLog).unsafeToFuture
+  def runLogF[A](s: Stream[IO, A]): Future[Vector[A]] =
+    (IO.shift >> s.runLog).unsafeToFuture
 
   def is = s2"""
                 totalTweetCounter $countTotalTweets
     """
 
   def countTotalTweets = {
-    prop{ (a: List[BasicTweet]) =>
+    prop { (a: List[BasicTweet]) =>
       val stream = Stream.emits[BasicTweet](a)
       val f = StreamTweetReporter.totalTweetCounterSignal[IO](stream)
 
-      val listSize : BigInt = BigInt(a.size)
-      val finalSize : BigInt = f.runLast.unsafeRunSync().get.get.unsafeRunSync()
+      val listSize: BigInt = BigInt(a.size)
+      val finalSize: BigInt = f.runLast.unsafeRunSync().get.get.unsafeRunSync()
 
       finalSize must_=== listSize
     }

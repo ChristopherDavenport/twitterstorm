@@ -5,9 +5,9 @@ import cats.Eq
 
 @JsonCodec
 case class Symbol(
-                  text: String,
-                  indices: List[Int]
-                  )
+    text: String,
+    indices: List[Int]
+)
 
 object Symbol {
   implicit val symbolEq = Eq.fromUniversalEquals[Symbol]

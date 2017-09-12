@@ -5,7 +5,7 @@ import cats.effect.Effect
 import fs2.Stream
 import tech.christopherdavenport.twitterstorm.twitter.BasicTweet
 
-abstract class TweetReporter[F[_]](implicit F: Effect[F]){
+abstract class TweetReporter[F[_]](implicit F: Effect[F]) {
 
   def totalTweets: F[BigInt]
 
@@ -19,31 +19,35 @@ abstract class TweetReporter[F[_]](implicit F: Effect[F]){
 
   def totalEmojis: F[BigInt]
 
-  def percentHashtags: F[(BigInt, BigInt)] = for {
-    tweets <- totalTweets
-    hashtags <- totalHashTags
-  } yield (hashtags, tweets)
+  def percentHashtags: F[(BigInt, BigInt)] =
+    for {
+      tweets <- totalTweets
+      hashtags <- totalHashTags
+    } yield (hashtags, tweets)
 
-  def percentUrls: F[(BigInt, BigInt)] = for {
-    tweets <- totalTweets
-    urls <- totalUrls
-  } yield {
-    (urls, tweets)
-  }
+  def percentUrls: F[(BigInt, BigInt)] =
+    for {
+      tweets <- totalTweets
+      urls <- totalUrls
+    } yield {
+      (urls, tweets)
+    }
 
-  def percentPictureUrls: F[(BigInt, BigInt)] = for {
-    tweets <- totalTweets
-    pictureUrls <- totalPictureUrls
-  } yield {
-    (pictureUrls, tweets)
-  }
+  def percentPictureUrls: F[(BigInt, BigInt)] =
+    for {
+      tweets <- totalTweets
+      pictureUrls <- totalPictureUrls
+    } yield {
+      (pictureUrls, tweets)
+    }
 
-  def percentEmojiContaining: F[(BigInt, BigInt)] = for {
-    tweets <- totalTweets
-    emojiTweets <- totalEmojiContainingTweets
-  } yield {
-    (emojiTweets, tweets)
-  }
+  def percentEmojiContaining: F[(BigInt, BigInt)] =
+    for {
+      tweets <- totalTweets
+      emojiTweets <- totalEmojiContainingTweets
+    } yield {
+      (emojiTweets, tweets)
+    }
 
   def topHashtags: F[List[String]]
 

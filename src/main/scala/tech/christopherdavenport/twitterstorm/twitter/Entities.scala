@@ -5,14 +5,14 @@ import cats.Eq
 
 @JsonCodec
 case class Entities(
-                   hashtags: List[Hashtag],
-                   urls: List[Url],
-                   user_mentions: List[UserMention],
-                   symbols: List[Symbol]
-                   )
+    hashtags: List[Hashtag],
+    urls: List[Url],
+    user_mentions: List[UserMention],
+    symbols: List[Symbol]
+)
 
 object Entities {
 
-  implicit val entitiesEq : Eq[Entities] = Eq.fromUniversalEquals[Entities]
+  implicit val entitiesEq: Eq[Entities] = Eq.fromUniversalEquals[Entities]
 
 }

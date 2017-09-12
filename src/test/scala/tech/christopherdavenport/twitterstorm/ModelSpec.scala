@@ -12,16 +12,19 @@ import tech.christopherdavenport.twitterstorm.twitter._
 
 class ModelSpec extends Specification {
 
-  val badBasic : BasicTweet =  BasicTweet(
+  val badBasic: BasicTweet = BasicTweet(
     ZonedDateTime.now(),
     BigInt(0),
-  "BAD MESSAGE",
-    Entities(List.empty[Hashtag], List.empty[Url], List.empty[UserMention], List.empty[Symbol]),
-  BigInt(0),
-  BigInt(0),
-  BigInt(0),
-  BigInt(0)
-
+    "BAD MESSAGE",
+    Entities(
+      List.empty[Hashtag],
+      List.empty[Url],
+      List.empty[UserMention],
+      List.empty[Symbol]),
+    BigInt(0),
+    BigInt(0),
+    BigInt(0),
+    BigInt(0)
   )
 
   val exampleTweet: String =
@@ -101,7 +104,7 @@ class ModelSpec extends Specification {
       |}
     """.stripMargin
 
-  val deleteExample : String =
+  val deleteExample: String =
     """{"delete":{
       |  "status":{
       |    "id":749373956830818304,
@@ -115,10 +118,10 @@ class ModelSpec extends Specification {
       |
     """.stripMargin
 
-
   "BasicTweet Decoder" should {
     "decode a valid Tweet through parsing" in {
-      val tweetParser = fs2.Stream.emit(io.circe.parser.parse(exampleTweet))
+      val tweetParser = fs2.Stream
+        .emit(io.circe.parser.parse(exampleTweet))
         .covary[IO]
         .through(Client.tweetPipe)
         .runLast
@@ -130,7 +133,8 @@ class ModelSpec extends Specification {
     }
 
     "decode into a matching tweet" in {
-      val tweetParser = fs2.Stream.emit(io.circe.parser.parse(exampleTweet))
+      val tweetParser = fs2.Stream
+        .emit(io.circe.parser.parse(exampleTweet))
         .covary[IO]
         .through(Client.tweetPipe)
         .runLast
@@ -138,16 +142,21 @@ class ModelSpec extends Specification {
         .get
 
       val basicTweet = BasicTweet(
-        ZonedDateTime.parse("Tue Aug 29 01:06:11 +0000 2017", DateTimeFormatter.ofPattern("EE MMM dd HH:mm:ss xxxx uuuu")),
+        ZonedDateTime.parse(
+          "Tue Aug 29 01:06:11 +0000 2017",
+          DateTimeFormatter.ofPattern("EE MMM dd HH:mm:ss xxxx uuuu")),
         BigInt("902336545302216706"),
         "J'cogite trop",
-        Entities(List.empty[Hashtag], List.empty[Url], List.empty[UserMention], List.empty[Symbol]),
+        Entities(
+          List.empty[Hashtag],
+          List.empty[Url],
+          List.empty[UserMention],
+          List.empty[Symbol]),
         BigInt(0),
         BigInt(0),
         BigInt(0),
         BigInt(0)
       )
-
 
       val resultTweet = tweetParser.getOrElse(badBasic)
       val result: Boolean = resultTweet === basicTweet
@@ -156,7 +165,8 @@ class ModelSpec extends Specification {
     }
 
     "fail to decode a delete response" in {
-      val tweetParser = fs2.Stream.emit(io.circe.parser.parse(deleteExample))
+      val tweetParser = fs2.Stream
+        .emit(io.circe.parser.parse(deleteExample))
         .covary[IO]
         .through(Client.tweetPipe)
         .runLast
@@ -166,9 +176,6 @@ class ModelSpec extends Specification {
       tweetParser should beLeft
     }
 
-
   }
-
-
 
 }

@@ -8,8 +8,8 @@ import scala.util.Try
 
 @JsonCodec
 case class Emoji(
-                name: Option[String],
-                unified: String,
+    name: Option[String],
+    unified: String,
 //                variations: List[String],
 //                docomo: Option[String],
 //                au: Option[String],
@@ -27,15 +27,14 @@ case class Emoji(
 //                added_in: String,
 //                has_img_app: Option[Boolean],
 //                has_img_google: Option[Boolean],
-                has_img_twitter: Option[Boolean],
+    has_img_twitter: Option[Boolean],
 //                has_img_emojione: Option[Boolean],
 //                has_img_facebook: Option[Boolean],
 //                has_img_messenger: Option[Boolean],
 //                obsoletes: Option[String]
-                )
+)
 
 object Emoji {
-
 
   def codePoint(string: String): Option[Int] = {
     val codePoint = Try(Integer.parseInt(string, 16))
