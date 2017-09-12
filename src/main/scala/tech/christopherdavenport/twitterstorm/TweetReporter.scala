@@ -2,9 +2,8 @@ package tech.christopherdavenport.twitterstorm
 
 import cats.implicits._
 import cats.effect.Effect
-import tech.christopherdavenport.twitterstorm.twitter.{BasicTweet, Hashtag}
-import fs2.{Sink, Stream}
-import fs2.async.mutable.Signal
+import fs2.Stream
+import tech.christopherdavenport.twitterstorm.twitter.BasicTweet
 
 abstract class TweetReporter[F[_]](implicit F: Effect[F]){
 
@@ -57,10 +56,5 @@ abstract class TweetReporter[F[_]](implicit F: Effect[F]){
   def tweetsPerMinute: F[BigInt]
 
   def tweetsPerHour: F[BigInt]
-
-}
-
-object TweetReporter {
-
 
 }

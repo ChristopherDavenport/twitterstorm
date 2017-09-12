@@ -17,6 +17,9 @@ val http4sVersion = "0.18.0-SNAPSHOT"
 val circeVersion = "0.9.0-M1"
 val pureConfigVersion = "0.8.0"
 val specs2Version = "4.0.0-RC4"
+val algebirdVersion = "0.13.0"
+val scalacheckVersion = "1.13.5"
+val logBackVersion = "1.2.3"
 
 libraryDependencies ++= Seq(
   "org.http4s"            %% "http4s-circe"         % http4sVersion,
@@ -27,8 +30,14 @@ libraryDependencies ++= Seq(
   "io.circe"              %% "circe-parser"         % circeVersion,
   "io.circe"              %% "circe-optics"         % circeVersion,
   "com.github.pureconfig" %% "pureconfig"           % pureConfigVersion,
-  "com.twitter"           %%  "algebird-core"       % "0.13.0",
-  "org.specs2"            %% "specs2-core"          % specs2Version             % Test
+  "com.twitter"           %% "algebird-core"        % algebirdVersion,
+
+  "ch.qos.logback"        %  "logback-classic"      % logBackVersion,
+
+  "org.scalacheck"        %% "scalacheck"           % scalacheckVersion         % Test,
+  "org.specs2"            %% "specs2-core"          % specs2Version             % Test,
+  "org.specs2"            %% "specs2-scalacheck"    % specs2Version             % Test,
+  "org.http4s"            %% "http4s-testing"       % http4sVersion             % Test
 )
 
 trapExit in Global := false

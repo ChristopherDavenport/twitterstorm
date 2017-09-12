@@ -199,7 +199,7 @@ object StreamTweetReporter {
 
 
 
-  def apply[F[_]](s: Stream[F, BasicTweet], scheduler: Scheduler)
+  def apply[F[_]](s: Stream[F, BasicTweet])
                  (implicit F: Effect[F], ec: ExecutionContext): Stream[F, TweetReporter[F]] = {
     for {
       emojiMap <- EmojiParser.emojiMapFromFile
@@ -219,29 +219,30 @@ object StreamTweetReporter {
     } yield {
       new TweetReporter[F] {
 
-        override def totalTweets: F[BigInt] = totalSignal.get
 
-        override def totalUrls: F[BigInt] = urlsSignal.get
+        override def totalTweets: F[BigInt] = F.shift >> totalSignal.get
 
-        override def totalPictureUrls: F[BigInt] = pictureUrlsSignal.get
+        override def totalUrls: F[BigInt] = F.shift >> urlsSignal.get
 
-        override def totalHashTags: F[BigInt] = topHTs.get.map(_.totalCount).map(BigInt(_))
+        override def totalPictureUrls: F[BigInt] = F.shift >> pictureUrlsSignal.get
 
-        override def totalEmojis: F[BigInt] = topEmoji.get.map(_.totalCount).map(BigInt(_))
+        override def totalHashTags: F[BigInt] = F.shift >> topHTs.get.map(_.totalCount).map(BigInt(_))
 
-        override def totalEmojiContainingTweets: F[BigInt] = emojiContainingSignal.get
+        override def totalEmojis: F[BigInt] = F.shift >> topEmoji.get.map(_.totalCount).map(BigInt(_))
 
-        override def tweetsPerHour: F[BigInt] = avgTPH.get.map(BigInt(_))
+        override def totalEmojiContainingTweets: F[BigInt] = F.shift >> emojiContainingSignal.get
 
-        override def tweetsPerMinute: F[BigInt] = avgTPM.get.map(BigInt(_))
+        override def tweetsPerHour: F[BigInt] = F.shift >> avgTPH.get.map(BigInt(_))
 
-        override def tweetsPerSecond: F[BigInt] = avgTPS.get.map(BigInt(_))
+        override def tweetsPerMinute: F[BigInt] = F.shift >> avgTPM.get.map(BigInt(_))
 
-        override def topHashtags: F[List[String]] = topHTs.get.map(_.heavyHitters.toList)
+        override def tweetsPerSecond: F[BigInt] = F.shift >> avgTPS.get.map(BigInt(_))
 
-        override def topDomains: F[List[String]] = topDs.get.map(_.heavyHitters.toList)
+        override def topHashtags: F[List[String]] = F.shift >> topHTs.get.map(_.heavyHitters.toList)
 
-        override def topEmojis: F[List[String]] = topEmoji.get.map(_.heavyHitters.toList)
+        override def topDomains: F[List[String]] = F.shift >> topDs.get.map(_.heavyHitters.toList)
+
+        override def topEmojis: F[List[String]] = F.shift >> topEmoji.get.map(_.heavyHitters.toList)
 
       }
     }

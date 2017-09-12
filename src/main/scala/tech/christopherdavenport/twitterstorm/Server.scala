@@ -12,6 +12,7 @@ import io.circe._
 import org.http4s.server.blaze.BlazeBuilder
 import org.http4s._
 import org.http4s.circe._
+import org.http4s.server.middleware.Logger
 
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration._
@@ -27,7 +28,7 @@ case class Server[F[_]](tweets: Stream[F, BasicTweet])
   def service(
                counter: Signal[F, BigInt],
                timer: fs2.async.immutable.Signal[F, FiniteDuration]
-             ) = HttpService[F] {
+             ): HttpService[F] = HttpService[F] {
     case GET -> Root =>
       Ok("Server is Operational")
     case GET -> Root / "counter" =>
@@ -130,13 +131,13 @@ case class Server[F[_]](tweets: Stream[F, BasicTweet])
       scheduler <- Scheduler[F](3)
       timer <- fs2.async.hold(Duration.Zero, scheduler.awakeEvery(10.millis))
       counter <- Stream.eval(fs2.async.signalOf[F, BigInt](0))
-      reporter <- StreamTweetReporter(tweets, scheduler)
-      serve <- BlazeBuilder[F]
+      reporter <- StreamTweetReporter(tweets)
+      nothing <- BlazeBuilder[F]
           .bindHttp(port, ip)
           .mountService(service(counter, timer), "/util")
-          .mountService(twitterService(reporter), "/twitter")
+          .mountService(Logger(true, true)(twitterService(reporter)), "/twitter") // Logger for Console Visualization
           .serve
 
-    } yield serve
+    } yield nothing
   }
 }
