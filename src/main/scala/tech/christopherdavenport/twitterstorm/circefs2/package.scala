@@ -32,25 +32,21 @@ package object circefs2 {
 
   final def stringParser[F[_]](mode: AsyncParser.Mode): Pipe[F, String, Json] =
     new ParsingPipe[F, String] {
-      protected[this] final def parseWith(p: AsyncParser[Json])(
-          in: String): Either[ParseException, Seq[Json]] =
+      protected[this] final def parseWith(p: AsyncParser[Json])(in: String): Either[ParseException, Seq[Json]] =
         p.absorb(in)(CirceSupportParser.facade)
 
       protected[this] val parsingMode: AsyncParser.Mode = mode
     }
 
-  final def byteParserC[F[_]](
-      mode: AsyncParser.Mode): Pipe[F, Chunk[Byte], Json] =
+  final def byteParserC[F[_]](mode: AsyncParser.Mode): Pipe[F, Chunk[Byte], Json] =
     new ParsingPipe[F, Chunk[Byte]] {
-      protected[this] final def parseWith(p: AsyncParser[Json])(
-          in: Chunk[Byte]): Either[ParseException, Seq[Json]] =
+      protected[this] final def parseWith(p: AsyncParser[Json])(in: Chunk[Byte]): Either[ParseException, Seq[Json]] =
         p.absorb(in.toArray)(CirceSupportParser.facade)
 
       protected[this] val parsingMode: AsyncParser.Mode = mode
     }
 
-  final def byteParserS[F[_]](
-      mode: AsyncParser.Mode): Pipe[F, Segment[Byte, Unit], Json] =
+  final def byteParserS[F[_]](mode: AsyncParser.Mode): Pipe[F, Segment[Byte, Unit], Json] =
     new ParsingPipe[F, Segment[Byte, Unit]] {
       protected[this] final def parseWith(p: AsyncParser[Json])(
           in: Segment[Byte, Unit]): Either[ParseException, Seq[Json]] =

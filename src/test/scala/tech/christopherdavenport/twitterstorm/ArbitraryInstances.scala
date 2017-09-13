@@ -24,15 +24,14 @@ trait ArbitraryInstances extends ArbInst {
       .of(9999, 12, 31, 23, 59, 59, 0, ZoneId.of("UTC"))
       .toInstant
       .toEpochMilli
-    choose[Long](min, max).map(l =>
-      ZonedDateTime.ofInstant(Instant.ofEpochMilli(l), ZoneId.of("UTC")))
+    choose[Long](min, max).map(l => ZonedDateTime.ofInstant(Instant.ofEpochMilli(l), ZoneId.of("UTC")))
   }
 
   implicit val arbHashTag: Arbitrary[Hashtag] = Arbitrary {
     for {
-      hashtag <- arbString.arbitrary suchThat (_.length < 20)
+      hashtag <- arbString.arbitrary
       index <- Gen.choose(0, 120 - hashtag.length)
-    } yield Hashtag(hashtag, List(index, index + hashtag.length))
+    } yield Hashtag(hashtag.take(20), List(index, index + hashtag.length))
   }
 
   implicit val arbUrl: Arbitrary[Url] = Arbitrary {
@@ -59,8 +58,7 @@ trait ArbitraryInstances extends ArbInst {
       userN <- arbitrary[String]
       id <- arbitrary[BigInt]
       index <- Gen.choose(0, 120)
-    } yield
-      UserMention(id, id.show, userN, name, List(index, index + userN.length))
+    } yield UserMention(id, id.show, userN, name, List(index, index + userN.length))
   }
 
   implicit val arbSymbol: Arbitrary[Symbol] = Arbitrary {
@@ -93,16 +91,7 @@ trait ArbitraryInstances extends ArbInst {
       replyC <- arbitrary[BigInt]
       retweetC <- arbitrary[BigInt]
       favoriteC <- arbitrary[BigInt]
-    } yield
-      BasicTweet(
-        dateTime,
-        id,
-        text,
-        entities,
-        quoteC,
-        replyC,
-        retweetC,
-        favoriteC)
+    } yield BasicTweet(dateTime, id, text, entities, quoteC, replyC, retweetC, favoriteC)
   }
 
 }

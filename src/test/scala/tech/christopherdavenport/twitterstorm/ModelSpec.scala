@@ -16,11 +16,7 @@ class ModelSpec extends Specification {
     ZonedDateTime.now(),
     BigInt(0),
     "BAD MESSAGE",
-    Entities(
-      List.empty[Hashtag],
-      List.empty[Url],
-      List.empty[UserMention],
-      List.empty[Symbol]),
+    Entities(List.empty[Hashtag], List.empty[Url], List.empty[UserMention], List.empty[Symbol]),
     BigInt(0),
     BigInt(0),
     BigInt(0),
@@ -142,16 +138,11 @@ class ModelSpec extends Specification {
         .get
 
       val basicTweet = BasicTweet(
-        ZonedDateTime.parse(
-          "Tue Aug 29 01:06:11 +0000 2017",
-          DateTimeFormatter.ofPattern("EE MMM dd HH:mm:ss xxxx uuuu")),
+        ZonedDateTime
+          .parse("Tue Aug 29 01:06:11 +0000 2017", DateTimeFormatter.ofPattern("EE MMM dd HH:mm:ss xxxx uuuu")),
         BigInt("902336545302216706"),
         "J'cogite trop",
-        Entities(
-          List.empty[Hashtag],
-          List.empty[Url],
-          List.empty[UserMention],
-          List.empty[Symbol]),
+        Entities(List.empty[Hashtag], List.empty[Url], List.empty[UserMention], List.empty[Symbol]),
         BigInt(0),
         BigInt(0),
         BigInt(0),

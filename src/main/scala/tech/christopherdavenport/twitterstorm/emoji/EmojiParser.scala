@@ -18,9 +18,7 @@ import scala.util.Try
 
 object EmojiParser {
 
-  def emojiMapFromFile[F[_]](
-      implicit F: Effect[F],
-      ec: ExecutionContext): Stream[F, Map[Int, String]] = {
+  def emojiMapFromFile[F[_]](implicit F: Effect[F], ec: ExecutionContext): Stream[F, Map[Int, String]] = {
     val resource = Try(scala.io.Source.fromResource("emoji.json"))
     val lines = resource.map(_.getLines)
     val resourceLines = Stream

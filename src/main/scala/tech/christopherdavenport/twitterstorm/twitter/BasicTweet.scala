@@ -35,32 +35,20 @@ object BasicTweet {
           favorited <- c.downField("favorite_count").as[BigInt]
 
         } yield {
-          BasicTweet(
-            created,
-            id,
-            text,
-            entities,
-            quoted,
-            replied,
-            retweeted,
-            favorited)
+          BasicTweet(created, id, text, entities, quoted, replied, retweeted, favorited)
         }
       }
 
     }
 
-  implicit val ZonedDateTimeFormat: Encoder[ZonedDateTime] with Decoder[
-    ZonedDateTime] =
+  implicit val ZonedDateTimeFormat: Encoder[ZonedDateTime] with Decoder[ZonedDateTime] =
     new Encoder[ZonedDateTime] with Decoder[ZonedDateTime] {
       override def apply(a: ZonedDateTime): Json =
         Encoder.encodeString(a.toString)
 
       override def apply(c: HCursor): Decoder.Result[ZonedDateTime] =
-        Decoder.decodeString.map(
-          str =>
-            ZonedDateTime.parse(
-              str,
-              DateTimeFormatter.ofPattern("EE MMM dd HH:mm:ss xxxx uuuu")))(c)
+        Decoder.decodeString.map(str =>
+          ZonedDateTime.parse(str, DateTimeFormatter.ofPattern("EE MMM dd HH:mm:ss xxxx uuuu")))(c)
     }
 
   implicit val basicTweetEq: Eq[BasicTweet] = Eq.fromUniversalEquals[BasicTweet]

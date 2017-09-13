@@ -44,16 +44,14 @@ trapExit in Global := false
                       Boilerplate below these lines
 \***********************************************************************/
 resolvers += Resolver.sonatypeRepo("releases")
-addCompilerPlugin(
-  "org.scalamacros" % "paradise" % "2.1.0" cross CrossVersion.full)
+addCompilerPlugin("org.scalamacros" % "paradise" % "2.1.0" cross CrossVersion.full)
 
 cancelable in Global := true
 
 //coursierUseSbtCredentials := true
 //coursierChecksums := Nil      // workaround for nexus sync bugs
 
-addCompilerPlugin(
-  "org.spire-math" % "kind-projector" % "0.9.3" cross CrossVersion.binary)
+addCompilerPlugin("org.spire-math" % "kind-projector" % "0.9.3" cross CrossVersion.binary)
 
 // Adapted from Rob Norris' post at https://tpolecat.github.io/2014/04/11/scalac-flags.html
 scalacOptions ++= Seq(

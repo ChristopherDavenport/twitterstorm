@@ -25,9 +25,7 @@ object Client {
       .flatMap(validateOrError)
   )
 
-  def validateOrError(
-      e: Either[ConfigReaderFailures, TwitterAuthentication]): IO[
-    TwitterAuthentication] = e match {
+  def validateOrError(e: Either[ConfigReaderFailures, TwitterAuthentication]): IO[TwitterAuthentication] = e match {
     case Left(errors) =>
       IO.raiseError(new Throwable(errors.toList.map(_.description).toString()))
     case Right(r) => IO(r)
@@ -38,8 +36,7 @@ object Client {
     Uri.unsafeFromString("https://stream.twitter.com/1.1/statuses/sample.json"),
 //    Uri.unsafeFromString("https://stream.twitter.com/1.1/statuses/filter.json?track=trump%2Cus%2Cmedia%2Cusa%2Camerica%2Cuk%2Cchina&stall_warnings=true"),
 //    Uri.unsafeFromString("https://stream.twitter.com/1.1/statuses/filter.json?track=dev%2Cprogramming%2Ctech%2Cjava%2Crust%2Cscala%2Cpython&stall_warnings=true"),
-    headers =
-      Headers(`Content-Type`(MediaType.`application/x-www-form-urlencoded`))
+    headers = Headers(`Content-Type`(MediaType.`application/x-www-form-urlencoded`))
   )
 
   def clientStream: Stream[IO, BasicTweet] = {
@@ -79,13 +76,8 @@ object Client {
   def jsonPipe[F[_]]: Pipe[F, Byte, Either[ParsingFailure, Json]] =
     _.through(fs2.text.utf8Decode).through(fs2.text.lines).map(parse)
 
-  def tweetPipe[F[_]]: Pipe[
-    F,
-    Either[ParsingFailure, Json],
-    Either[String, BasicTweet]] = _.map {
-    _.fold(
-      e => Either.left(e.message),
-      j => j.as[BasicTweet].leftMap(_.message))
+  def tweetPipe[F[_]]: Pipe[F, Either[ParsingFailure, Json], Either[String, BasicTweet]] = _.map {
+    _.fold(e => Either.left(e.message), j => j.as[BasicTweet].leftMap(_.message))
   }
 
 }

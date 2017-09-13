@@ -8,14 +8,12 @@ import io.circe.jawn.CirceSupportParser
 private[circefs2] abstract class ParsingPipe[F[_], S] extends Pipe[F, S, Json] {
   protected[this] def parsingMode: AsyncParser.Mode
 
-  protected[this] def parseWith(parser: AsyncParser[Json])(
-      in: S): Either[ParseException, Seq[Json]]
+  protected[this] def parseWith(parser: AsyncParser[Json])(in: S): Either[ParseException, Seq[Json]]
 
   private[this] final def makeParser: AsyncParser[Json] =
     CirceSupportParser.async(mode = parsingMode)
 
-  private[this] final def doneOrLoop[A](p: AsyncParser[Json])(
-      s: Stream[F, S]): Stream[F, Json] = s.repeatPull {
+  private[this] final def doneOrLoop[A](p: AsyncParser[Json])(s: Stream[F, S]): Stream[F, Json] = s.repeatPull {
     _.uncons1.flatMap {
       case Some((hd, tl)) =>
         parseWith(p)(hd) match {

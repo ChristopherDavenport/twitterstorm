@@ -8,9 +8,7 @@ import util._
 
 object TwitterStormApp extends StreamApp[IO] {
 
-  def stream(
-      args: List[String],
-      requestShutdown: IO[Unit]): Stream[IO, Nothing] = {
+  def stream(args: List[String], requestShutdown: IO[Unit]): Stream[IO, Nothing] = {
     val port = 8080
     val ip = "0.0.0.0"
 

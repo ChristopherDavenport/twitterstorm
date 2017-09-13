@@ -72,45 +72,30 @@ case class Server[F[_]](tweets: Stream[F, BasicTweet])(
       case GET -> Root / "percent" / "urls" =>
         reporter.percentUrls.flatMap {
           case (numer, denom) =>
-            Ok(
-              Json.obj(
-                "numerator" -> Json.fromBigInt(numer),
-                "denominator" -> Json.fromBigInt(denom)))
+            Ok(Json.obj("numerator" -> Json.fromBigInt(numer), "denominator" -> Json.fromBigInt(denom)))
         }
       case GET -> Root / "percent" / "pictures" =>
         reporter.percentPictureUrls.flatMap {
           case (numer, denom) =>
-            Ok(
-              Json.obj(
-                "numerator" -> Json.fromBigInt(numer),
-                "denominator" -> Json.fromBigInt(denom)))
+            Ok(Json.obj("numerator" -> Json.fromBigInt(numer), "denominator" -> Json.fromBigInt(denom)))
         }
       case GET -> Root / "percent" / "hashtags" =>
         reporter.percentHashtags.flatMap {
           case (numer, denom) =>
-            Ok(
-              Json.obj(
-                "numerator" -> Json.fromBigInt(numer),
-                "denominator" -> Json.fromBigInt(denom)))
+            Ok(Json.obj("numerator" -> Json.fromBigInt(numer), "denominator" -> Json.fromBigInt(denom)))
         }
       case GET -> Root / "percent" / "emojis" =>
         reporter.percentEmojiContaining.flatMap {
           case (numer, denom) =>
-            Ok(
-              Json.obj(
-                "numerator" -> Json.fromBigInt(numer),
-                "denominator" -> Json.fromBigInt(denom)))
+            Ok(Json.obj("numerator" -> Json.fromBigInt(numer), "denominator" -> Json.fromBigInt(denom)))
         }
 
       case GET -> Root / "average" / "second" =>
-        reporter.tweetsPerSecond.flatMap(i =>
-          Ok(Json.obj("perSecond" -> Json.fromBigInt(i))))
+        reporter.tweetsPerSecond.flatMap(i => Ok(Json.obj("perSecond" -> Json.fromBigInt(i))))
       case GET -> Root / "average" / "minute" =>
-        reporter.tweetsPerMinute.flatMap(i =>
-          Ok(Json.obj("perMinute" -> Json.fromBigInt(i))))
+        reporter.tweetsPerMinute.flatMap(i => Ok(Json.obj("perMinute" -> Json.fromBigInt(i))))
       case GET -> Root / "average" / "hour" =>
-        reporter.tweetsPerHour.flatMap(i =>
-          Ok(Json.obj("perHour" -> Json.fromBigInt(i))))
+        reporter.tweetsPerHour.flatMap(i => Ok(Json.obj("perHour" -> Json.fromBigInt(i))))
 
       case GET -> Root / "top" / "hashtags" =>
         reporter.topHashtags.flatMap { hashtags =>

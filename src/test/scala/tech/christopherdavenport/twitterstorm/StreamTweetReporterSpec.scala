@@ -1,41 +1,65 @@
 package tech.christopherdavenport.twitterstorm
 
 import cats.implicits._
-import cats.effect.IO
+import cats.effect.{Effect, IO, Sync}
 import org.specs2._
 import org.scalacheck._
 import org.scalacheck.Arbitrary._
 import tech.christopherdavenport.twitterstorm.twitter.BasicTweet
 import fs2._
+import fs2.async.mutable.Signal
+import tech.christopherdavenport.twitterstorm.StreamTweetReporter._
 
-import scala.concurrent.Future
+import scala.concurrent.{ExecutionContext, Future}
 import scala.concurrent.duration._
 import scala.concurrent.ExecutionContext.Implicits.global
 
-class StreamTweetReporterSpec
-    extends Specification
-    with ScalaCheck
-    with ArbitraryInstances {
-
-  val timeout: FiniteDuration = 60.seconds
-
-  def runLogF[A](s: Stream[IO, A]): Future[Vector[A]] =
-    (IO.shift >> s.runLog).unsafeToFuture
+class StreamTweetReporterSpec extends Specification with ScalaCheck with ArbitraryInstances {
 
   def is = s2"""
-                totalTweetCounter $countTotalTweets
+  countTotal Tweets That Pass Through   $countTotal
+  totalTweetCounterSignal should count all tweets $countTweets
+  totalHashTagCounterSignal should count all hashtags $countHashtags
+  totalUrlCounterSignal should count all urls $countUrls
     """
 
-  def countTotalTweets = {
-    prop { (a: List[BasicTweet]) =>
-      val stream = Stream.emits[BasicTweet](a)
-      val f = StreamTweetReporter.totalTweetCounterSignal[IO](stream)
+  def countTotalSubset[A](p: Pipe[IO, A, fs2.async.immutable.Signal[IO, BigInt]], f: A => BigInt)(
+      implicit arbitrary: Arbitrary[A]) = {
+    prop { (a: List[A]) =>
+      val expected = a.map(f).fold(BigInt(0))(_ + _)
+      val signalValue: Stream[IO, Option[BigInt]] = Stream
+        .emits(a)
+        .covary[IO]
+        .through(p)
+        .evalMap(s => IO(Thread.sleep(50)) >> IO(s))
+        .evalMap(_.get)
+        .last
 
-      val listSize: BigInt = BigInt(a.size)
-      val finalSize: BigInt = f.runLast.unsafeRunSync().get.get.unsafeRunSync()
-
-      finalSize must_=== listSize
+      signalValue.runLast.unsafeRunSync().flatten should_=== Some(expected)
     }
   }
+
+  def countTotal = {
+    prop { (a: List[String]) =>
+      val listSize = BigInt(a.length)
+      val signalValue: Stream[IO, Option[BigInt]] = Stream
+        .emits(a)
+        .covary[IO]
+        .through(countEach[IO, String])
+        .evalMap(s => IO(Thread.sleep(25)) >> IO(s))
+        .evalMap(_.get)
+        .last
+
+      signalValue.runLast.unsafeRunSync().flatten should_=== Some(listSize)
+    }
+  }
+
+  def countTweets =
+    countTotalSubset[BasicTweet](totalTweetCounterSignal, _ => BigInt(1))
+
+  def countHashtags =
+    countTotalSubset[BasicTweet](totalHashtagCounterSignal, _.entities.hashtags.length)
+
+  def countUrls = countTotalSubset[BasicTweet](totalUrlCounterSignal, _.entities.urls.length)
 
 }
