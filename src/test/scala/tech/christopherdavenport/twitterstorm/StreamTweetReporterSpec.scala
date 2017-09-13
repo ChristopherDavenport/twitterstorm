@@ -46,7 +46,7 @@ class StreamTweetReporterSpec extends Specification with ScalaCheck with Arbitra
         .emits(a)
         .covary[IO]
         .through(countEach[IO, String])
-        .evalMap(s => IO(Thread.sleep(25)) >> IO(s))
+        .evalMap(s => IO(Thread.sleep(50)) >> IO(s))
         .evalMap(_.get)
         .last
 
