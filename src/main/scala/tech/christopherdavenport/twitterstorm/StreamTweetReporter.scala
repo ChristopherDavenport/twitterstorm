@@ -21,7 +21,7 @@ object StreamTweetReporter {
 
   def totalCounter[F[_]: Effect, A](f: A => BigInt)(
       implicit ec: ExecutionContext): Pipe[F, A, immutable.Signal[F, BigInt]] =
-    stream => { fs2.async.hold(BigInt(0), stream.map(f).scan1(_ + _)) }
+    stream => { hold(BigInt(0), stream.map(f).scan1(_ + _)) }
 
   def countEach[F[_]: Effect, A](implicit ec: ExecutionContext): Pipe[F, A, immutable.Signal[F, BigInt]] =
     totalCounter(_ => BigInt(1))
