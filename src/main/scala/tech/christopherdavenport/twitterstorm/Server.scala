@@ -126,12 +126,11 @@ case class Server[F[_]](tweets: Stream[F, BasicTweet])(
       timer <- fs2.async.hold(Duration.Zero, scheduler.awakeEvery(10.millis))
       counter <- Stream.eval(fs2.async.signalOf[F, BigInt](0))
       reporter <- StreamTweetReporter(tweets)
-      nothing <- BlazeBuilder[F]
+      nothing <- BlazeBuilder[F]  // Stream[F, Nothing] I Would love to remove deadCode Warning Here.
         .bindHttp(port, ip)
         .mountService(service(counter, timer), "/util")
         .mountService(Logger(true, true)(twitterService(reporter)), "/twitter") // Logger for Console Visualization
         .serve
-
     } yield nothing
   }
 }
