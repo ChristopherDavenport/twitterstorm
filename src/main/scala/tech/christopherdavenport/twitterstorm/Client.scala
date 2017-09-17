@@ -1,6 +1,6 @@
 package tech.christopherdavenport.twitterstorm
 
-import cats.effect.IO
+import cats.effect.Effect
 import cats.implicits._
 import fs2.{Pipe, Stream}
 import io.circe.Json
@@ -12,7 +12,7 @@ import org.http4s.dsl.io.POST
 import org.http4s.headers.`Content-Type`
 import pureconfig.error.ConfigReaderFailures
 import pureconfig.loadConfig
-import tech.christopherdavenport.twitterstorm.authentication.TwitterAuthentication
+import tech.christopherdavenport.twitterstorm.authentication._
 import tech.christopherdavenport.twitterstorm.twitter.BasicTweet
 import tech.christopherdavenport.twitterstorm.util._
 
@@ -20,18 +20,19 @@ import scala.concurrent.ExecutionContext
 
 object Client {
 
-  val configStream: Stream[IO, TwitterAuthentication] = Stream.eval(
-    IO(loadConfig[TwitterAuthentication]("twitterstorm"))
-      .flatMap(validateOrError)
+  def configStream[F[_]](implicit F: Effect[F]): Stream[F, TwitterUserAuthentication] = Stream.eval(
+    F.delay(loadConfig[TwitterUserAuthentication]("twitterstorm"))
+      .flatMap(validateOrError[F])
   )
 
-  def validateOrError(e: Either[ConfigReaderFailures, TwitterAuthentication]): IO[TwitterAuthentication] = e match {
+  def validateOrError[F[_]](e: Either[ConfigReaderFailures, TwitterUserAuthentication])
+                           (implicit F: Effect[F]): F[TwitterUserAuthentication] = e match {
     case Left(errors) =>
-      IO.raiseError(new Throwable(errors.toList.map(_.description).toString()))
-    case Right(r) => IO(r)
+      F.raiseError(new Throwable(errors.toList.map(_.description).toString()))
+    case Right(r) => F.pure(r)
   }
 
-  val twitterStreamRequest: Request[IO] = Request[IO](
+  def twitterStreamRequest[F[_]: Effect]: Request[F] = Request[F](
     POST,
     Uri.unsafeFromString("https://stream.twitter.com/1.1/statuses/sample.json"),
 //    Uri.unsafeFromString("https://stream.twitter.com/1.1/statuses/filter.json?track=trump%2Cus%2Cmedia%2Cusa%2Camerica%2Cuk%2Cchina&stall_warnings=true"),
@@ -39,30 +40,21 @@ object Client {
     headers = Headers(`Content-Type`(MediaType.`application/x-www-form-urlencoded`))
   )
 
-  def clientStream: Stream[IO, BasicTweet] = {
-    configStream
-      .flatMap { conf =>
-        Stream.eval(
-          authentication.userSign[IO](
-            conf.consumerKey,
-            conf.consumerSecret,
-            conf.userKey,
-            conf.userSecret
-          )(twitterStreamRequest)
-        )
-      }
-      .flatMap(
-        signedRequest =>
-          PooledHttp1Client[IO](1).streaming(signedRequest)(
-            resp =>
-              resp.body
-                .through(jsonPipeS[IO])
-//          .observe(_.map(_.map(_.pretty(io.circe.Printer.noSpaces))).to(printSink))
-                .through(tweetPipeS[IO])
-//           .observe(printSink)
-                .through(filterLeft)
-//          .observe(s => s.filter(_.entities.hashtags.nonEmpty).to(printSink))
-        ))
+  def clientBodyStream[F[_]](implicit F: Effect[F]): Stream[F, Byte] = for {
+    ta <- configStream // Fails Immediately if Config is Not Loaded
+    client <- Stream.emit(PooledHttp1Client(1))
+    signedRequest <- Stream.repeatEval(F.delay(twitterStreamRequest)).through(userSign(ta)) // Endlessly Generate Stream
+    infiniteEntityBody <- client.streaming(signedRequest)(_.body)
+  } yield infiniteEntityBody
+
+  def clientStream[F[_]](implicit F: Effect[F], ec: ExecutionContext): Stream[F, BasicTweet] = {
+    clientBodyStream
+      .through(jsonPipeS[F])
+//      .observe(_.map(_.map(_.pretty(io.circe.Printer.noSpaces))).to(printSink))
+      .through(tweetPipeS[F])
+//      .observe(printSink)
+      .through(filterLeft)
+//      .observe(s => s.filter(_.entities.hashtags.nonEmpty).to(printSink))
   }
 
   def jsonPipeS[F[_]]: Pipe[F, Byte, Json] = s => {

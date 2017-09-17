@@ -1,6 +1,6 @@
 package tech.christopherdavenport.twitterstorm.authentication
 
-case class TwitterAuthentication(
+case class TwitterUserAuthentication(
     consumerKey: String,
     consumerSecret: String,
     userKey: String,

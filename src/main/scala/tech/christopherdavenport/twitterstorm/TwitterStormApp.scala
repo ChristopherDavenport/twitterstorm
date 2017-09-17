@@ -2,7 +2,10 @@ package tech.christopherdavenport.twitterstorm
 
 import cats.effect.IO
 import fs2.Stream
+import org.http4s.Request
+import org.http4s.client.blaze.PooledHttp1Client
 import org.http4s.util.StreamApp
+
 import scala.concurrent.ExecutionContext.Implicits.global
 import util._
 
@@ -12,7 +15,7 @@ object TwitterStormApp extends StreamApp[IO] {
     val port = 8080
     val ip = "0.0.0.0"
 
-    Client.clientStream
+    Client.clientStream[IO]
       .observeAsync(1000)(t => Server[IO](t).server(port, ip)) // Creating the Server is a Side-Effect
       .drain
   }
