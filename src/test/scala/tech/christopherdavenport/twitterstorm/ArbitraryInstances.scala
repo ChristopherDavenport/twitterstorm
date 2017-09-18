@@ -76,8 +76,9 @@ trait ArbitraryInstances extends ArbInst {
       urls <- listOf(arbitrary[Url])
       mentions <- listOf(arbitrary[UserMention])
       symbols <- listOf(arbitrary[Symbol])
+//      media <- option(listOf(arbitrary[Media]))
     } yield {
-      Entities(hashtags, urls, mentions, symbols)
+      Entities(hashtags, urls, mentions, symbols, media = None) //TODO: Fix Media Arbitrary
     }
   }
 

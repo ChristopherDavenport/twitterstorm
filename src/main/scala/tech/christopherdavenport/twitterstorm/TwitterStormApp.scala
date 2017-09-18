@@ -15,9 +15,10 @@ object TwitterStormApp extends StreamApp[IO] {
     val port = 8080
     val ip = "0.0.0.0"
 
-    Client.clientStream[IO]
-      .observeAsync(1000)(t => Server[IO](t).server(port, ip)) // Creating the Server is a Side-Effect
-      .drain
+    for {
+      config <- Config.loadTwitterUser[IO]
+      result <- Client.clientStream[IO](config).observe(Server[IO](_).server(port, ip)).drain
+    } yield result
   }
 
 }

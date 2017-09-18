@@ -35,7 +35,7 @@ class StreamTweetReporterSpec extends Specification with ScalaCheck with Arbitra
         .evalMap(_.get)
         .last
 
-      signalValue.runLast.unsafeRunSync().flatten should_=== Some(expected)
+      signalValue.runLast.map(_.flatten).unsafeRunSync() should_=== Some(expected)
     }
   }
 

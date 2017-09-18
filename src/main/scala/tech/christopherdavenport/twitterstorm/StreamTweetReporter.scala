@@ -20,8 +20,17 @@ import util._
 object StreamTweetReporter {
 
   def totalCounter[F[_]: Effect, A](f: A => BigInt)(
-      implicit ec: ExecutionContext): Pipe[F, A, immutable.Signal[F, BigInt]] =
-    stream => { hold(BigInt(0), stream.map(f).scan1(_ + _)) }
+      implicit ec: ExecutionContext): Pipe[F, A, immutable.Signal[F, BigInt]] = {
+        stream => hold(BigInt(0), stream.map(f).scan1(_ + _))
+//    def alterSignalSink(signal: fs2.async.mutable.Signal[F, BigInt]): Sink[F, A] =
+//      _.evalMap{ t => signal.modify(_ + f(t)).void}
+//
+//    for {
+//      signal <- Stream.eval(fs2.async.signalOf[F, BigInt](0))
+//      result <- Stream.emit(signal).concurrently(stream.to(alterSignalSink(signal)))
+//    } yield result
+  }
+
 
   def countEach[F[_]: Effect, A](implicit ec: ExecutionContext): Pipe[F, A, immutable.Signal[F, BigInt]] =
     totalCounter(_ => BigInt(1))
@@ -55,7 +64,7 @@ object StreamTweetReporter {
       implicit ec: ExecutionContext): Pipe[F, BasicTweet, immutable.Signal[F, BigInt]] = {
     def containsEmoji(b: BasicTweet): Boolean = {
       b.text.toList // Array Char
-        .map(_.toInt) // To Int Value
+        .map(_.toInt)
         .map(emojis.get) // Option
         .exists(_.isDefined)
     }
@@ -211,39 +220,29 @@ object StreamTweetReporter {
     } yield {
       new TweetReporter[F] {
 
-        override def totalTweets: F[BigInt] = F.shift >> totalSignal.get
+        override def totalTweets: F[BigInt] = totalSignal.get
 
-        override def totalUrls: F[BigInt] = F.shift >> urlsSignal.get
+        override def totalUrls: F[BigInt] = urlsSignal.get
 
-        override def totalPictureUrls: F[BigInt] =
-          F.shift >> pictureUrlsSignal.get
+        override def totalPictureUrls: F[BigInt] = pictureUrlsSignal.get
 
-        override def totalHashTags: F[BigInt] =
-          F.shift >> hashtagSignal.get
+        override def totalHashTags: F[BigInt] = hashtagSignal.get
 
-        override def totalEmojis: F[BigInt] =
-          F.shift >> topEmoji.get.map(_.totalCount).map(BigInt(_))
+        override def totalEmojis: F[BigInt] = topEmoji.get.map(_.totalCount).map(BigInt(_))
 
-        override def totalEmojiContainingTweets: F[BigInt] =
-          F.shift >> emojiContainingSignal.get
+        override def totalEmojiContainingTweets: F[BigInt] = emojiContainingSignal.get
 
-        override def tweetsPerHour: F[BigInt] =
-          F.shift >> avgTPH.get.map(BigInt(_))
+        override def tweetsPerHour: F[BigInt] = avgTPH.get.map(BigInt(_))
 
-        override def tweetsPerMinute: F[BigInt] =
-          F.shift >> avgTPM.get.map(BigInt(_))
+        override def tweetsPerMinute: F[BigInt] = avgTPM.get.map(BigInt(_))
 
-        override def tweetsPerSecond: F[BigInt] =
-          F.shift >> avgTPS.get.map(BigInt(_))
+        override def tweetsPerSecond: F[BigInt] = avgTPS.get.map(BigInt(_))
 
-        override def topHashtags: F[List[String]] =
-          F.shift >> topHTs.get.map(_.heavyHitters.toList)
+        override def topHashtags: F[List[String]] = topHTs.get.map(_.heavyHitters.toList)
 
-        override def topDomains: F[List[String]] =
-          F.shift >> topDs.get.map(_.heavyHitters.toList)
+        override def topDomains: F[List[String]] = topDs.get.map(_.heavyHitters.toList)
 
-        override def topEmojis: F[List[String]] =
-          F.shift >> topEmoji.get.map(_.heavyHitters.toList)
+        override def topEmojis: F[List[String]] = topEmoji.get.map(_.heavyHitters.toList)
 
       }
     }

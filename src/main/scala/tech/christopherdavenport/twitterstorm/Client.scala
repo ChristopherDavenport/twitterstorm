@@ -2,6 +2,7 @@ package tech.christopherdavenport.twitterstorm
 
 import cats.effect.Effect
 import cats.implicits._
+import org.log4s.getLogger
 import fs2.{Pipe, Stream}
 import io.circe.Json
 import io.circe.parser.parse
@@ -20,18 +21,6 @@ import scala.concurrent.ExecutionContext
 
 object Client {
 
-  def configStream[F[_]](implicit F: Effect[F]): Stream[F, TwitterUserAuthentication] = Stream.eval(
-    F.delay(loadConfig[TwitterUserAuthentication]("twitterstorm"))
-      .flatMap(validateOrError[F])
-  )
-
-  def validateOrError[F[_]](e: Either[ConfigReaderFailures, TwitterUserAuthentication])
-                           (implicit F: Effect[F]): F[TwitterUserAuthentication] = e match {
-    case Left(errors) =>
-      F.raiseError(new Throwable(errors.toList.map(_.description).toString()))
-    case Right(r) => F.pure(r)
-  }
-
   def twitterStreamRequest[F[_]: Effect]: Request[F] = Request[F](
     POST,
     Uri.unsafeFromString("https://stream.twitter.com/1.1/statuses/sample.json"),
@@ -40,19 +29,18 @@ object Client {
     headers = Headers(`Content-Type`(MediaType.`application/x-www-form-urlencoded`))
   )
 
-  def clientBodyStream[F[_]](implicit F: Effect[F]): Stream[F, Byte] = for {
-    ta <- configStream // Fails Immediately if Config is Not Loaded
+  def clientBodyStream[F[_]](ta: TwitterUserAuthentication)(implicit F: Effect[F]): Stream[F, Byte] = for {
     client <- Stream.emit(PooledHttp1Client(1))
-    signedRequest <- Stream.repeatEval(F.delay(twitterStreamRequest)).through(userSign(ta)) // Endlessly Generate Stream
+    signedRequest <- Stream.repeatEval(F.pure(twitterStreamRequest)).through(userSign(ta)) // Endlessly Generate Stream
     infiniteEntityBody <- client.streaming(signedRequest)(_.body)
   } yield infiniteEntityBody
 
-  def clientStream[F[_]](implicit F: Effect[F], ec: ExecutionContext): Stream[F, BasicTweet] = {
-    clientBodyStream
+  def clientStream[F[_]](ta: TwitterUserAuthentication)(implicit F: Effect[F], ec: ExecutionContext): Stream[F, BasicTweet] = {
+    clientBodyStream(ta)
       .through(jsonPipeS[F])
-//      .observe(_.map(_.map(_.pretty(io.circe.Printer.noSpaces))).to(printSink))
+      .observe(_.map(_.pretty(_root_.io.circe.Printer.spaces2)).to(logSink(getLogger, TRACE, _.toString)))
       .through(tweetPipeS[F])
-//      .observe(printSink)
+      .observe(logSink(getLogger, INFO, _.show))
       .through(filterLeft)
 //      .observe(s => s.filter(_.entities.hashtags.nonEmpty).to(printSink))
   }

@@ -1,8 +1,11 @@
 package tech.christopherdavenport.twitterstorm.twitter
 
+import io.circe.generic.JsonCodec
+
+@JsonCodec
 case class Sizes(
-    medium: Size,
-    thumb: Size,
-    small: Size,
-    large: Size
+    medium: Option[Size],
+    thumb: Option[Size],
+    small: Option[Size],
+    large: Option[Size]
 )

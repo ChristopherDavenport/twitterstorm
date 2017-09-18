@@ -8,7 +8,8 @@ case class Entities(
     hashtags: List[Hashtag],
     urls: List[Url],
     user_mentions: List[UserMention],
-    symbols: List[Symbol]
+    symbols: List[Symbol],
+    media: Option[List[Media]]
 )
 
 object Entities {
