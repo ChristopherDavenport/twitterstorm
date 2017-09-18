@@ -17,7 +17,7 @@ object TwitterStormApp extends StreamApp[IO] {
 
     for {
       config <- Config.loadTwitterUser[IO]
-      result <- Client.clientStream[IO](config).observe(Server[IO](_).server(port, ip)).drain
+      result <- Client.clientStream[IO](config).observeAsync(Int.MaxValue)(Server[IO](_).server(port, ip)).drain
     } yield result
   }
 

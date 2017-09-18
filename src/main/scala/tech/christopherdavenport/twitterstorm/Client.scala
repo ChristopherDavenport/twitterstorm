@@ -38,10 +38,11 @@ object Client {
   def clientStream[F[_]](ta: TwitterUserAuthentication)(implicit F: Effect[F], ec: ExecutionContext): Stream[F, BasicTweet] = {
     clientBodyStream(ta)
       .through(jsonPipeS[F])
-      .observe(_.map(_.pretty(_root_.io.circe.Printer.spaces2)).to(logSink(getLogger, TRACE, _.toString)))
+//      .observe(_.map(_.pretty(_root_.io.circe.Printer.spaces2)).to(logSink(getLogger, TRACE, _.toString)))
       .through(tweetPipeS[F])
-      .observe(logSink(getLogger, INFO, _.show))
+//      .observe(logSink(getLogger, INFO, _.show))
       .through(filterLeft)
+      .observe(logSink(getLogger, INFO, _.show))
 //      .observe(s => s.filter(_.entities.hashtags.nonEmpty).to(printSink))
   }
 
