@@ -50,13 +50,10 @@ object StreamTweetReporter {
       implicit ec: ExecutionContext): Pipe[F, BasicTweet, immutable.Signal[F, BigInt]] =
     totalCounter(_.entities.hashtags.size)
 
-  def totalEmojiContainingSignal[F[_]: Effect](emojis: Map[Int, String])(
+  def totalEmojiContainingSignal[F[_]: Effect](emojis: Map[String, String])(
       implicit ec: ExecutionContext): Pipe[F, BasicTweet, immutable.Signal[F, BigInt]] = {
     def containsEmoji(b: BasicTweet): Boolean = {
-      b.text.toList // Array Char
-        .map(_.toInt)
-        .map(emojis.get) // Option
-        .exists(_.isDefined)
+      emojis.keys.exists{k => b.text.contains(k)}
     }
     def containsEmojiCount(b: BasicTweet): BigInt =
       if (containsEmoji(b)) BigInt(1) else BigInt(0)
@@ -162,17 +159,13 @@ object StreamTweetReporter {
     topTweetsBy(tweets, urls)
   }
 
-  def topEmojis[F[_]](tweets: Stream[F, BasicTweet], emojis: Map[Int, String])(
+  def topEmojis[F[_]](tweets: Stream[F, BasicTweet], emojis: Map[String, String])(
       implicit F: Effect[F],
       ec: ExecutionContext): Stream[F, fs2.async.immutable.Signal[F, TopCMS[String]]] = {
     def emojiNames(tweet: BasicTweet): List[String] = {
-      tweet.text.toList
-        .map(_.toInt)
-        .map(emojis.get)
-        .flatMap {
-          case Some(v) => List(v)
-          case None => List.empty
-        }
+      emojis.toList.flatMap{
+        case (k, v) => if (tweet.text.contains(k)) List(v) else List.empty[String]
+      }
     }
 
     topTweetsBy(tweets, emojiNames)

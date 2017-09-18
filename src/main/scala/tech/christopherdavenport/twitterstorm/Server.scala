@@ -56,14 +56,14 @@ case class Server[F[_]](tweets: Stream[F, BasicTweet])(
         reporter.totalHashTags.flatMap { i =>
           Ok(Json.obj("hashtags" -> Json.fromBigInt(i)))
         }
-//      case GET -> Root / "total" / "emojis" =>
-//        reporter.totalEmojis.flatMap { i =>
-//          Ok(Json.obj("emojis" -> Json.fromBigInt(i)))
-//        }
-//      case GET -> Root / "total" / "emojiTweets" =>
-//        reporter.totalEmojiContainingTweets.flatMap { i =>
-//          Ok(Json.obj("emojiTweets" -> Json.fromBigInt(i)))
-//        }
+      case GET -> Root / "total" / "emojis" =>
+        reporter.totalEmojis.flatMap { i =>
+          Ok(Json.obj("emojis" -> Json.fromBigInt(i)))
+        }
+      case GET -> Root / "total" / "emojiTweets" =>
+        reporter.totalEmojiContainingTweets.flatMap { i =>
+          Ok(Json.obj("emojiTweets" -> Json.fromBigInt(i)))
+        }
 
       case GET -> Root / "percent" / "urls" =>
         reporter.percentUrls.flatMap {

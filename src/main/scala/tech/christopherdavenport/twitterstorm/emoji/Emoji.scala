@@ -1,35 +1,19 @@
 package tech.christopherdavenport.twitterstorm.emoji
 
+import cats._
+import cats.Id
+import cats.implicits._
 import _root_.io.circe.generic.JsonCodec
+import cats.effect.{Effect, IO, Sync}
+import scodec.bits.ByteVector
+import fs2._
 
 import scala.util.Try
 
 @JsonCodec
 case class Emoji(
     name: Option[String],
-    unified: String,
-//                variations: List[String],
-//                docomo: Option[String],
-//                au: Option[String],
-//                softbank: Option[String],
-//                google: Option[String],
-//                image: Option[String],
-//                sheet_x: Int,
-//                sheet_y: Int,
-//                short_name: Option[String],
-//                short_names: List[String],
-//                text: Option[String],
-//                texts: Option[List[String]],
-//                category: String,
-//                sort_order: Int,
-//                added_in: String,
-//                has_img_app: Option[Boolean],
-//                has_img_google: Option[Boolean],
-    has_img_twitter: Option[Boolean],
-//                has_img_emojione: Option[Boolean],
-//                has_img_facebook: Option[Boolean],
-//                has_img_messenger: Option[Boolean],
-//                obsoletes: Option[String]
+    unified: String
 )
 
 object Emoji {
@@ -42,6 +26,18 @@ object Emoji {
           Try(Integer.parseInt(stripped, 16))
       }
     codePoint.toOption
+  }
+
+  def hexStringToUTF8String(s: String): Option[String] = {
+    s.split("-") // Seperate Each Hex Char
+      .toVector
+      .map(hex => Try(Integer.parseInt(hex, 16)).toOption)
+      .map(_.flatMap(i => Try(i.toByte).toOption))
+      .sequence[Option, Byte]
+      .map(Stream.emits(_).through(text.utf8Decode).covary[IO].run) // Pure Computation Would be Nice to Avoid IO
+      .sequence[IO, Option[String]]
+      .map(_.flatten)
+      .unsafeRunSync()
   }
 
 }
