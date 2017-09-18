@@ -11,7 +11,7 @@ import tech.christopherdavenport.twitterstorm.StreamTweetReporter._
 
 import scala.concurrent.ExecutionContext.Implicits.global
 
-class StreamTweetReporterSpec extends Specification with ScalaCheck with ArbitraryInstances {
+class CountTweetReporterSpec extends Specification with ScalaCheck with ArbitraryInstances {
 
   def is = s2"""
   count1 should succesfully Count the example list $count1
