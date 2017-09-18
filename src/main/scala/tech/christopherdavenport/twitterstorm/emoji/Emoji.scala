@@ -13,7 +13,8 @@ import scala.util.Try
 @JsonCodec
 case class Emoji(
     name: Option[String],
-    unified: String
+    unified: String,
+    has_img_twitter: Boolean
 )
 
 object Emoji {
@@ -34,10 +35,24 @@ object Emoji {
       .map(hex => Try(Integer.parseInt(hex, 16)).toOption)
       .map(_.flatMap(i => Try(i.toByte).toOption))
       .sequence[Option, Byte]
-      .map(Stream.emits(_).through(text.utf8Decode).covary[IO].run) // Pure Computation Would be Nice to Avoid IO
+      .map(
+        Stream.emits(_)
+          .through(text.utf8Decode)
+          .covary[IO]  // Pure Computation Would be Nice to Avoid IO
+          .runLast
+      )
       .sequence[IO, Option[String]]
       .map(_.flatten)
       .unsafeRunSync()
+  }
+
+  def hexStringToByteVector(s: String): Option[ByteVector] = {
+    s.split("-")
+      .toVector
+      .map(hex => Try(Integer.parseInt(hex, 16)).toOption)
+      .map(_.flatMap(i => Try(i.toByte).toOption))
+      .sequence[Option, Byte]
+      .map(ByteVector(_))
   }
 
 }

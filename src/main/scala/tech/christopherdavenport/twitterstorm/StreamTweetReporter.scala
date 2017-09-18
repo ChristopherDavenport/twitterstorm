@@ -5,10 +5,11 @@ import java.time.ZonedDateTime
 import cats.implicits._
 import cats.effect.Effect
 import com.twitter.algebird._
-import fs2.{Pipe,Sink, Stream}
+import fs2.{Pipe, Sink, Stream}
 import fs2.async._
 import fs2.async.mutable.Queue
 import org.http4s.Uri.Host
+import scodec.bits.ByteVector
 import tech.christopherdavenport.twitterstorm.emoji.EmojiParser
 import tech.christopherdavenport.twitterstorm.twitter.BasicTweet
 
@@ -50,10 +51,10 @@ object StreamTweetReporter {
       implicit ec: ExecutionContext): Pipe[F, BasicTweet, immutable.Signal[F, BigInt]] =
     totalCounter(_.entities.hashtags.size)
 
-  def totalEmojiContainingSignal[F[_]: Effect](emojis: Map[String, String])(
+  def totalEmojiContainingSignal[F[_]: Effect](emojis: Map[ByteVector, String])(
       implicit ec: ExecutionContext): Pipe[F, BasicTweet, immutable.Signal[F, BigInt]] = {
     def containsEmoji(b: BasicTweet): Boolean = {
-      emojis.keys.exists{k => b.text.contains(k)}
+      emojis.keys.exists{k => ByteVector(b.text.getBytes).containsSlice(k)}
     }
     def containsEmojiCount(b: BasicTweet): BigInt =
       if (containsEmoji(b)) BigInt(1) else BigInt(0)
@@ -108,44 +109,45 @@ object StreamTweetReporter {
       implicit F: Effect[F],
       ec: ExecutionContext): Pipe[F, BasicTweet, fs2.async.immutable.Signal[F, Int]] = averageTweetsPerDuration(1.hour)
 
-  def topTweetsBy[F[_]](tweets: Stream[F, BasicTweet], f: BasicTweet => List[String])(
+  def topNBy[F[_], A](f: A => List[String], n: Int = 10)(
       implicit F: Effect[F],
-      ec: ExecutionContext): Stream[F, fs2.async.immutable.Signal[F, TopCMS[String]]] = {
+      ec: ExecutionContext): Pipe[F, A, fs2.async.immutable.Signal[F, TopCMS[String]]] = tweets => {
     def topNCMSMonoid: TopNCMSMonoid[String] = {
       val eps = 0.001
       val delta = 1E-10
-      val seed = 1
-      val topN = 10
+      val seed = 2
+      val topN = n
 //      val heavyHittersPct = 0.001
 //      TopPctCMS.monoid[String](eps, delta, seed, heavyHittersPct)
       TopNCMS.monoid(eps, delta, seed, topN)
     }
-    def addStream(t: TopCMS[String], elem: BasicTweet, f: BasicTweet => List[String]): TopCMS[String] =
-      f(elem).foldLeft(t)((top, newE) => top + newE)
+//    def addStream(t: TopCMS[String], elem: BasicTweet, f: BasicTweet => List[String]): TopCMS[String] =
+//      f(elem).foldLeft(t)((top, newE) => top + newE)
     val zero = topNCMSMonoid.create(Seq.empty)
-    def adjustSignalBy(s: fs2.async.mutable.Signal[F, TopCMS[String]]): Sink[F, BasicTweet] =
-      str => {
-        for {
-          tweet <- str
-          res <- Stream.eval(s.modify(addStream(_, tweet, f)))
-        } yield res
-      }.drain
+//    def adjustSignalBy(s: fs2.async.mutable.Signal[F, TopCMS[String]]): Sink[F, BasicTweet] =
+//      str => {
+//        for {
+//          tweet <- str
+//          res <- Stream.eval(s.modify(addStream(_, tweet, f)))
+//        } yield res
+//      }.drain
+//
+//    for {
+//      signal <- Stream.eval(fs2.async.signalOf(zero))
+//      res <- Stream.emit(signal).concurrently(tweets.to(adjustSignalBy(signal)))
+//    } yield res
 
-    for {
-      signal <- Stream.eval(fs2.async.signalOf(zero))
-      res <- Stream.emit(signal).concurrently(tweets.to(adjustSignalBy(signal)))
-    } yield res
-
+    hold(zero, tweets.map(f).scan(zero)((cms, list) => list.foldLeft(cms)((top, str) => top + str)))
   }
 
-  def topHashtags[F[_]](tweets: Stream[F, BasicTweet])(
-      implicit F: Effect[F],
-      ec: ExecutionContext): Stream[F, fs2.async.immutable.Signal[F, TopCMS[String]]] =
-    topTweetsBy(tweets, _.entities.hashtags.map(_.text))
+  def topNHashtags[F[_]](n: Int)
+                        (implicit F: Effect[F], ec: ExecutionContext
+                        ): Pipe[F, BasicTweet, fs2.async.immutable.Signal[F, TopCMS[String]]] =
+    topNBy(_.entities.hashtags.map(_.text), n)
 
-  def topDomains[F[_]](tweets: Stream[F, BasicTweet])(
+  def topNDomains[F[_]](n: Int)(
       implicit F: Effect[F],
-      ec: ExecutionContext): Stream[F, fs2.async.immutable.Signal[F, TopCMS[String]]] = {
+      ec: ExecutionContext): Pipe[F, BasicTweet, fs2.async.immutable.Signal[F, TopCMS[String]]] = {
     def urls(tweet: BasicTweet): List[String] = {
       tweet.entities.urls
         .map(_.expanded_url)
@@ -156,19 +158,18 @@ object StreamTweetReporter {
         .map(_.value)
     }
 
-    topTweetsBy(tweets, urls)
+    topNBy(urls, n)
   }
 
-  def topEmojis[F[_]](tweets: Stream[F, BasicTweet], emojis: Map[String, String])(
+  def topNEmojis[F[_]](n: Int, emojis: Map[ByteVector, String])(
       implicit F: Effect[F],
-      ec: ExecutionContext): Stream[F, fs2.async.immutable.Signal[F, TopCMS[String]]] = {
+      ec: ExecutionContext): Pipe[F, BasicTweet, fs2.async.immutable.Signal[F, TopCMS[String]]] = {
     def emojiNames(tweet: BasicTweet): List[String] = {
-      emojis.toList.flatMap{
-        case (k, v) => if (tweet.text.contains(k)) List(v) else List.empty[String]
-      }
+
+      emojis.toList.filter{ case (k, _) => ByteVector(tweet.text.getBytes).containsSlice(k) }.map(_._2)
     }
 
-    topTweetsBy(tweets, emojiNames)
+    topNBy(emojiNames, n)
   }
 
   def apply[F[_]](
@@ -184,9 +185,9 @@ object StreamTweetReporter {
       avgTPM <- s.through(averageTweetsPerMinute)
       avgTPH <- s.through(averageTweetsPerHour)
 
-      topHTs <- topHashtags(s)
-      topDs <- topDomains(s)
-      topEmoji <- topEmojis(s, emojiMap)
+      topHTs <- s.through(topNHashtags(25))
+      topDs <- s.through(topNDomains(25))
+      topEmoji <- s.through(topNEmojis(25, emojiMap))
 
     } yield {
       new TweetReporter[F] {
