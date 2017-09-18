@@ -18,25 +18,28 @@ object EmojiParser {
       .eval(F.fromTry(lines))
       .flatMap(i => Stream.emits(i.toSeq))
 
-    val json = resourceLines
+    resourceLines
       .through(stringArrayParser)
       .through(decoder[F, Emoji])
-      .filter(_.has_img_twitter)
-      .map(emoji => Emoji.hexStringToByteVector(emoji.unified) -> emoji)
-      .filter(_._1.isDefined)
-      .map {
-        case (k, v) =>
-          for {
-            key <- k
-            name <- v.name
-          } yield key -> name
-      }
-      .unNone
+      .through(emojiStreamToMap)
+  }
 
+  def emojiStreamToMap[F[_]](implicit F: Effect[F]): Pipe[F, Emoji, Map[ByteVector, String]] = emojis =>
     Stream.eval(
-      json.runLog
+      emojis
+        .filter(_.has_img_twitter)
+        .map(emoji => ByteVector.fromHex(emoji.unified) -> emoji) // Parse from Hex, some longer regional emoji's not parsed.
+        .filter(_._1.isDefined)
+        .map {
+          case (k, v) =>
+            for {
+              key <- k
+              name <- v.name
+            } yield key -> name
+        }
+        .unNone
+        .runLog
         .map(_.toMap)
     )
-  }
 
 }
