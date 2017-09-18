@@ -5,7 +5,7 @@ import java.time.ZonedDateTime
 import cats.implicits._
 import cats.effect.Effect
 import com.twitter.algebird._
-import fs2.{Pipe, Sink, Stream}
+import fs2.{Pipe, Stream}
 import fs2.async._
 import fs2.async.mutable.Queue
 import org.http4s.Uri.Host
@@ -111,33 +111,18 @@ object StreamTweetReporter {
 
   def topNBy[F[_], A](f: A => List[String], n: Int = 10)(
       implicit F: Effect[F],
-      ec: ExecutionContext): Pipe[F, A, fs2.async.immutable.Signal[F, TopCMS[String]]] = tweets => {
-    def topNCMSMonoid: TopNCMSMonoid[String] = {
+      ec: ExecutionContext): Pipe[F, A, fs2.async.immutable.Signal[F, TopCMS[String]]] =
+    tweets => {
+    def topNCMSMonoid(n: Int): TopNCMSMonoid[String] = {
       val eps = 0.001
       val delta = 1E-10
       val seed = 2
       val topN = n
-//      val heavyHittersPct = 0.001
-//      TopPctCMS.monoid[String](eps, delta, seed, heavyHittersPct)
       TopNCMS.monoid(eps, delta, seed, topN)
     }
-//    def addStream(t: TopCMS[String], elem: BasicTweet, f: BasicTweet => List[String]): TopCMS[String] =
-//      f(elem).foldLeft(t)((top, newE) => top + newE)
-    val zero = topNCMSMonoid.create(Seq.empty)
-//    def adjustSignalBy(s: fs2.async.mutable.Signal[F, TopCMS[String]]): Sink[F, BasicTweet] =
-//      str => {
-//        for {
-//          tweet <- str
-//          res <- Stream.eval(s.modify(addStream(_, tweet, f)))
-//        } yield res
-//      }.drain
-//
-//    for {
-//      signal <- Stream.eval(fs2.async.signalOf(zero))
-//      res <- Stream.emit(signal).concurrently(tweets.to(adjustSignalBy(signal)))
-//    } yield res
 
-    hold(zero, tweets.map(f).scan(zero)((cms, list) => list.foldLeft(cms)((top, str) => top + str)))
+    val zero = topNCMSMonoid(n).create(Seq.empty)
+    hold(zero, tweets.flatMap(t => Stream.emits(f(t))).scan(zero)((cms, str) => cms + str))
   }
 
   def topNHashtags[F[_]](n: Int)
