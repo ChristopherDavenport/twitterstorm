@@ -12,7 +12,7 @@
     </appender>
 
     <logger name="org.http4s" level="info" />
-    <logger name="tech.christopherdavenport" level="TRACE" />
+    <logger name="tech.christopherdavenport" level="info" />
 
     <root level="ERROR">
         <appender-ref ref="STDOUT" />

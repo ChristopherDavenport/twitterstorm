@@ -1,8 +1,6 @@
 package tech.christopherdavenport.twitterstorm.emoji
 
 import _root_.io.circe.generic.JsonCodec
-import _root_.io.circe.Json
-import scodec.bits._
 
 import scala.util.Try
 

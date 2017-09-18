@@ -1,22 +1,18 @@
 package tech.christopherdavenport.twitterstorm
 
-import cats.Semigroup
 import cats.effect.Effect
 import cats.implicits._
 import org.http4s.HttpService
 import org.http4s.dsl.Http4sDsl
-import fs2.{Scheduler, Sink, Stream}
-import fs2.async.mutable.Signal
+import fs2._
 import tech.christopherdavenport.twitterstorm.twitter.BasicTweet
-import io.circe._
+import _root_.io.circe.Json
 import org.http4s.server.blaze.BlazeBuilder
-import org.http4s._
 import org.http4s.circe._
 import org.http4s.server.middleware.Logger
 
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration._
-import util._
 
 case class Server[F[_]](tweets: Stream[F, BasicTweet])(
     implicit F: Effect[F],
@@ -24,7 +20,7 @@ case class Server[F[_]](tweets: Stream[F, BasicTweet])(
 ) extends Http4sDsl[F] {
 
   def service(
-      counter: Signal[F, BigInt],
+      counter: fs2.async.mutable.Signal[F, BigInt],
       timer: fs2.async.immutable.Signal[F, FiniteDuration]
   ): HttpService[F] = HttpService[F] {
     case GET -> Root =>
@@ -120,13 +116,13 @@ case class Server[F[_]](tweets: Stream[F, BasicTweet])(
         }
     }
 
-  def server(port: Int, ip: String): Stream[F, Nothing] = {
+  def serve(port: Int, ip: String): Stream[F, Nothing] = {
     for {
       scheduler <- Scheduler[F](3)
       timer <- fs2.async.hold(Duration.Zero, scheduler.awakeEvery(10.millis))
       counter <- Stream.eval(fs2.async.signalOf[F, BigInt](0))
       reporter <- StreamTweetReporter(tweets)
-      nothing <- BlazeBuilder[F]  // Stream[F, Nothing] I Would love to remove deadCode Warning Here.
+      nothing <- BlazeBuilder[F] // Stream[F, Nothing] I Would love to remove deadCode Warning Here.
         .bindHttp(port, ip)
         .mountService(service(counter, timer), "/util")
         .mountService(Logger(true, true)(twitterService(reporter)), "/twitter") // Logger for Console Visualization

@@ -3,46 +3,36 @@ package tech.christopherdavenport.twitterstorm
 import java.time.ZonedDateTime
 
 import cats.implicits._
-import cats.effect.{Effect, IO}
+import cats.effect.Effect
 import com.twitter.algebird._
-import fs2.{Pipe, Scheduler, Sink, Stream}
+import fs2.{Pipe,Sink, Stream}
 import fs2.async._
 import fs2.async.mutable.Queue
 import org.http4s.Uri.Host
-import org.log4s.getLogger
 import tech.christopherdavenport.twitterstorm.emoji.EmojiParser
 import tech.christopherdavenport.twitterstorm.twitter.BasicTweet
 
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration.FiniteDuration
 import scala.concurrent.duration._
-import util._
 
 object StreamTweetReporter {
 
   def totalCounter[F[_]: Effect, A](f: A => BigInt)(
-      implicit ec: ExecutionContext): Pipe[F, A, immutable.Signal[F, BigInt]] = {
-        stream =>  hold(BigInt(0), stream.map(f).scan1(_ + _))
-//    def alterSignalSink(signal: fs2.async.mutable.Signal[F, BigInt]): Sink[F, A] =
-//      _.evalMap{ t => signal.modify(_ + f(t)).void}
-//
-//    for {
-//      signal <- Stream.eval(fs2.async.signalOf[F, BigInt](0))
-//      result <- Stream.emit(signal).concurrently(stream.to(alterSignalSink(signal)))
-//    } yield result
+      implicit ec: ExecutionContext): Pipe[F, A, immutable.Signal[F, BigInt]] = { stream =>
+    hold(BigInt(0), stream.map(f).scan1(_ + _))
   }
-
 
   def countEach[F[_]: Effect, A](implicit ec: ExecutionContext): Pipe[F, A, immutable.Signal[F, BigInt]] =
     totalCounter(_ => BigInt(1))
 
   def totalTweetCounterSignal[F[_]: Effect](
       implicit ec: ExecutionContext): Pipe[F, BasicTweet, immutable.Signal[F, BigInt]] =
-    _.observe(logSink(getLogger, TRACE, a => s"CountEach: ${a.toString}")).through(countEach)
+    countEach
 
   def totalUrlCounterSignal[F[_]: Effect](
       implicit ec: ExecutionContext): Pipe[F, BasicTweet, immutable.Signal[F, BigInt]] =
-    _.observe(logSink(getLogger, TRACE, a => s"TotalUrlCounter: ${a.id}")).through(totalCounter(_.entities.urls.size))
+    totalCounter(_.entities.urls.size)
 
   def totalPictureUrlCounterSignal[F[_]: Effect](
       implicit ec: ExecutionContext): Pipe[F, BasicTweet, immutable.Signal[F, BigInt]] = {
@@ -53,13 +43,12 @@ object StreamTweetReporter {
             url.expanded_url.contains("pic.twitter") || url.expanded_url
             .contains("instagram"))
     }
-
-    _.observe(logSink(getLogger, TRACE, a => s"TotalPictureURl: ${a.id}")).through(totalCounter(containsNPictureUrls))
+    totalCounter(containsNPictureUrls)
   }
 
   def totalHashtagCounterSignal[F[_]: Effect](
       implicit ec: ExecutionContext): Pipe[F, BasicTweet, immutable.Signal[F, BigInt]] =
-    _.observe(logSink(getLogger, TRACE, a => s"TotalHashtagCounter: ${a.id}")).through(totalCounter(_.entities.hashtags.size))
+    totalCounter(_.entities.hashtags.size)
 
   def totalEmojiContainingSignal[F[_]: Effect](emojis: Map[Int, String])(
       implicit ec: ExecutionContext): Pipe[F, BasicTweet, immutable.Signal[F, BigInt]] = {
@@ -72,7 +61,7 @@ object StreamTweetReporter {
     def containsEmojiCount(b: BasicTweet): BigInt =
       if (containsEmoji(b)) BigInt(1) else BigInt(0)
 
-    _.observe(logSink(getLogger, TRACE, a => s"TotalEmojiCounter: ${a.id}")).through(totalCounter(containsEmojiCount))
+    totalCounter(containsEmojiCount)
   }
 
   /**
@@ -112,18 +101,15 @@ object StreamTweetReporter {
 
   def averageTweetsPerSecond[F[_]](
       implicit F: Effect[F],
-      ec: ExecutionContext): Pipe[F, BasicTweet, immutable.Signal[F, Int]] =
-    _.observe(logSink(getLogger, TRACE, a => s"AverageTweetsPerSecond: ${a.id}")).through(averageTweetsPerDuration(1.second))
+      ec: ExecutionContext): Pipe[F, BasicTweet, immutable.Signal[F, Int]] = averageTweetsPerDuration(1.second)
 
   def averageTweetsPerMinute[F[_]](
       implicit F: Effect[F],
-      ec: ExecutionContext): Pipe[F, BasicTweet, immutable.Signal[F, Int]] =
-    _.observe(logSink(getLogger, TRACE, a => s"AverageTweetsPerMinute: ${a.id}")).through(averageTweetsPerDuration(1.minute))
+      ec: ExecutionContext): Pipe[F, BasicTweet, immutable.Signal[F, Int]] = averageTweetsPerDuration(1.minute)
 
   def averageTweetsPerHour[F[_]](
       implicit F: Effect[F],
-      ec: ExecutionContext): Pipe[F, BasicTweet, fs2.async.immutable.Signal[F, Int]] =
-    _.observe(logSink(getLogger, TRACE, a => s"AverageTweetsPerHour: ${a.id}")).through(averageTweetsPerDuration(1.hour))
+      ec: ExecutionContext): Pipe[F, BasicTweet, fs2.async.immutable.Signal[F, Int]] = averageTweetsPerDuration(1.hour)
 
   def topTweetsBy[F[_]](tweets: Stream[F, BasicTweet], f: BasicTweet => List[String])(
       implicit F: Effect[F],
@@ -191,15 +177,6 @@ object StreamTweetReporter {
 
     topTweetsBy(tweets, emojiNames)
   }
-
-  // Naive Attempt to Build Queue with all tweets and buffer indefinitely.
-  //      queue <- Stream.eval(fs2.async.unboundedQueue[F, BasicTweet]).flatMap{ q =>
-  //        val queueOp: Sink[F, fs2.async.mutable.Queue[F, BasicTweet]] = _.flatMap{q =>
-  //          Stream.eval(tweets.observe(q.enqueue)/**.observe(printSink)**/.run)
-  //        }
-  //        Stream.emit(q)
-  //          .observe(queueOp)
-  //      }
 
   def apply[F[_]](
       s: Stream[F, BasicTweet])(implicit F: Effect[F], ec: ExecutionContext): Stream[F, TweetReporter[F]] = {

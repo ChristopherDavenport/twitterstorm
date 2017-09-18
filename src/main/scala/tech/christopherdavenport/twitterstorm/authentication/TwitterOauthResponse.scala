@@ -4,7 +4,6 @@ import io.circe.generic.JsonCodec
 
 @JsonCodec
 case class TwitterOauthResponse(
-                               token_type: String,
-                               access_token: String
-                               )
-
+    token_type: String,
+    access_token: String
+)

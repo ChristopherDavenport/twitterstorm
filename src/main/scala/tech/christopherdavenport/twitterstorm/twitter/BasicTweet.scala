@@ -5,8 +5,6 @@ import cats.{Eq, Show}
 import java.time._
 import java.time.format.DateTimeFormatter
 
-import scala.util.Try
-
 case class BasicTweet(
     created_at: ZonedDateTime,
     id: BigInt,

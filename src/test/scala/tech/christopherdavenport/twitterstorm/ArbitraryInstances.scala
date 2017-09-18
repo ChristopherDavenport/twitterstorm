@@ -2,7 +2,6 @@ package tech.christopherdavenport.twitterstorm
 
 import java.time.{Instant, ZoneId, ZonedDateTime}
 
-import cats.effect._
 import cats.implicits._
 import org.http4s.testing.{ArbitraryInstances => ArbInst}
 import org.scalacheck._
@@ -10,8 +9,6 @@ import org.scalacheck.Arbitrary._
 import org.scalacheck.Gen
 import org.scalacheck.Gen._
 import tech.christopherdavenport.twitterstorm.twitter._
-import fs2._
-import scala.concurrent.Future
 
 trait ArbitraryInstances extends ArbInst {
 

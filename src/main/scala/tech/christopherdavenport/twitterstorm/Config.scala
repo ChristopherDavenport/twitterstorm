@@ -9,13 +9,12 @@ import tech.christopherdavenport.twitterstorm.authentication.TwitterUserAuthenti
 
 object Config {
 
-  def loadTwitterUser[F[_]](implicit F: Effect[F]): Stream[F, TwitterUserAuthentication] = Stream.eval(
-    F.delay(loadConfig[TwitterUserAuthentication]("twitterstorm"))
+  def loadTwitterUserAuth[F[_]](s: String)(implicit F: Effect[F]): Stream[F, TwitterUserAuthentication] = Stream.eval(
+    F.delay(loadConfig[TwitterUserAuthentication](s))
       .flatMap(validateOrError[F, TwitterUserAuthentication])
   )
 
-  def validateOrError[F[_], A](e: Either[ConfigReaderFailures, A])
-                           (implicit F: Effect[F]): F[A] = e match {
+  def validateOrError[F[_], A](e: Either[ConfigReaderFailures, A])(implicit F: Effect[F]): F[A] = e match {
     case Left(errors) =>
       F.raiseError(new Throwable(errors.toList.map(_.description).toString()))
     case Right(r) => F.pure(r)

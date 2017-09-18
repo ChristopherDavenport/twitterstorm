@@ -4,9 +4,6 @@ import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
 
 import cats.effect.IO
-import cats._
-import cats.implicits._
-import io.circe.ParsingFailure
 import org.specs2.mutable.Specification
 import tech.christopherdavenport.twitterstorm.twitter._
 

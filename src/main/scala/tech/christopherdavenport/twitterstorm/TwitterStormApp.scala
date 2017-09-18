@@ -2,12 +2,9 @@ package tech.christopherdavenport.twitterstorm
 
 import cats.effect.IO
 import fs2.Stream
-import org.http4s.Request
-import org.http4s.client.blaze.PooledHttp1Client
 import org.http4s.util.StreamApp
 
 import scala.concurrent.ExecutionContext.Implicits.global
-import util._
 
 object TwitterStormApp extends StreamApp[IO] {
 
@@ -15,10 +12,11 @@ object TwitterStormApp extends StreamApp[IO] {
     val port = 8080
     val ip = "0.0.0.0"
 
-    for {
-      config <- Config.loadTwitterUser[IO]
-      result <- Client.clientStream[IO](config).observeAsync(Int.MaxValue)(Server[IO](_).server(port, ip)).drain
-    } yield result
+    Config
+      .loadTwitterUserAuth[IO]("twitterstorm")
+      .through(Client.clientStream)
+      .observeAsync(Int.MaxValue)(Server(_).serve(port, ip))
+      .drain
   }
 
 }

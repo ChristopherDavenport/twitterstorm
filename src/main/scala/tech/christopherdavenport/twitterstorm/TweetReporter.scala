@@ -2,8 +2,6 @@ package tech.christopherdavenport.twitterstorm
 
 import cats.implicits._
 import cats.effect.Effect
-import fs2.Stream
-import tech.christopherdavenport.twitterstorm.twitter.BasicTweet
 
 abstract class TweetReporter[F[_]](implicit F: Effect[F]) {
 
