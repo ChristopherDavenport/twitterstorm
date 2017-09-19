@@ -17,7 +17,7 @@ val http4sVersion = "0.18.0-SNAPSHOT"
 val circeVersion = "0.9.0-M1"
 val pureConfigVersion = "0.8.0"
 val specs2Version = "4.0.0-RC4"
-val algebirdVersion = "0.13.0"
+val algebirdVersion = "0.13.2"
 val scalacheckVersion = "1.13.5"
 val logBackVersion = "1.2.3"
 
