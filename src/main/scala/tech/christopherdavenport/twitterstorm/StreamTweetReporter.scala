@@ -10,7 +10,6 @@ import fs2.async._
 import fs2.async.mutable.Queue
 import org.http4s.Uri.Host
 import scodec.bits.ByteVector
-import tech.christopherdavenport.twitterstorm.emoji.EmojiParser
 import tech.christopherdavenport.twitterstorm.twitter.BasicTweet
 
 import scala.concurrent.ExecutionContext
@@ -120,8 +119,8 @@ object StreamTweetReporter {
       val topN = n
       TopNCMS.monoid(eps, delta, seed, topN)
     }
+    val zero = topNCMSMonoid(n).zero
 
-    val zero = topNCMSMonoid(n).create(Seq.empty)
     hold(zero, tweets.flatMap(t => Stream.emits(f(t))).scan(zero)((cms, str) => cms + str))
   }
 
@@ -157,10 +156,8 @@ object StreamTweetReporter {
     topNBy(emojiNames, n)
   }
 
-  def apply[F[_]](
-      s: Stream[F, BasicTweet])(implicit F: Effect[F], ec: ExecutionContext): Stream[F, TweetReporter[F]] = {
+  def apply[F[_]](emojiMap: Map[ByteVector, String], n : Int)(implicit F: Effect[F], ec: ExecutionContext): Pipe[F, BasicTweet, TweetReporter[F]] = s => {
     for {
-      emojiMap <- EmojiParser.emojiMapFromFile
       totalSignal <- s.through(totalTweetCounterSignal)
       urlsSignal <- s.through(totalUrlCounterSignal)
       pictureUrlsSignal <- s.through(totalPictureUrlCounterSignal)
@@ -170,9 +167,9 @@ object StreamTweetReporter {
       avgTPM <- s.through(averageTweetsPerMinute)
       avgTPH <- s.through(averageTweetsPerHour)
 
-      topHTs <- s.through(topNHashtags(25))
-      topDs <- s.through(topNDomains(25))
-      topEmoji <- s.through(topNEmojis(25, emojiMap))
+      topHTs <- s.through(topNHashtags(n))
+      topDs <- s.through(topNDomains(n))
+      topEmoji <- s.through(topNEmojis(n, emojiMap))
 
     } yield {
       new TweetReporter[F] {

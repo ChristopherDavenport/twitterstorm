@@ -4,12 +4,13 @@ import cats.effect.Effect
 import cats.implicits._
 import org.http4s.HttpService
 import org.http4s.dsl.Http4sDsl
-import fs2._
+import fs2.{Scheduler, Sink, Stream}
 import tech.christopherdavenport.twitterstorm.twitter.BasicTweet
-import _root_.io.circe.Json
 import org.http4s.server.blaze.BlazeBuilder
-import org.http4s.circe._
+import io.circe.Json
 import org.http4s.server.middleware.Logger
+import org.http4s.circe._
+import tech.christopherdavenport.twitterstorm.emoji.EmojiParser
 
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration._
@@ -116,17 +117,30 @@ case class Server[F[_]](tweets: Stream[F, BasicTweet])(
         }
     }
 
-  def serve(port: Int, ip: String): Stream[F, Nothing] = {
+  def serve(port: Int, ip: String, topN: Int): Stream[F, Nothing] = {
+    val logHeaders = true
+    val logBody = true
     for {
       scheduler <- Scheduler[F](3)
       timer <- fs2.async.hold(Duration.Zero, scheduler.awakeEvery(10.millis))
       counter <- Stream.eval(fs2.async.signalOf[F, BigInt](0))
-      reporter <- StreamTweetReporter(tweets)
+      emojiMap <- EmojiParser.emojiMapFromFile
+      reporter <- tweets.through(StreamTweetReporter(emojiMap, topN))
       nothing <- BlazeBuilder[F] // Stream[F, Nothing] I Would love to remove deadCode Warning Here.
         .bindHttp(port, ip)
         .mountService(service(counter, timer), "/util")
-        .mountService(Logger(true, true)(twitterService(reporter)), "/twitter") // Logger for Console Visualization
+        .mountService(Logger(logHeaders, logBody)(twitterService(reporter)), "/twitter") // Logger for Console Visualization
         .serve
     } yield nothing
   }
+}
+
+object Server {
+
+  def serve[F[_]](port: Int, ip: String, topN: Int)
+                 (implicit F: Effect[F], ec: ExecutionContext): Sink[F, BasicTweet] =
+    Server(_).serve(port, ip, topN)
+
+
+
 }

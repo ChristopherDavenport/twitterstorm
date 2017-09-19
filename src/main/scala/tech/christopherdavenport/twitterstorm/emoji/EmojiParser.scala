@@ -1,10 +1,10 @@
 package tech.christopherdavenport.twitterstorm
 package emoji
 
-import cats.effect.Effect
+import cats.effect.{Effect, Sync}
 import cats.implicits._
 import fs2._
-import circefs2._
+import _root_.io.circe.fs2._
 import scodec.bits.ByteVector
 
 import scala.util.Try
@@ -24,7 +24,7 @@ object EmojiParser {
       .through(emojiStreamToMap)
   }
 
-  def emojiStreamToMap[F[_]](implicit F: Effect[F]): Pipe[F, Emoji, Map[ByteVector, String]] = emojis =>
+  def emojiStreamToMap[F[_]](implicit F: Sync[F]): Pipe[F, Emoji, Map[ByteVector, String]] = emojis =>
     Stream.eval(
       emojis
         .filter(_.has_img_twitter)
