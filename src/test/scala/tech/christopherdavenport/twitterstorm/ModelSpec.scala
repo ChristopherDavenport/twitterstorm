@@ -114,9 +114,10 @@ class ModelSpec extends Specification {
   "BasicTweet Decoder" should {
     "decode a valid Tweet through parsing" in {
       val tweetParser = fs2.Stream
-        .emit(io.circe.parser.parse(exampleTweet))
+        .emit(exampleTweet)
+        .through(_root_.io.circe.fs2.stringStreamParser)
         .covary[IO]
-        .through(Client.tweetPipe)
+        .through(Client.tweetPipeS)
         .runLast
         .unsafeRunSync()
         .get
@@ -126,10 +127,10 @@ class ModelSpec extends Specification {
     }
 
     "decode into a matching tweet" in {
-      val tweetParser = fs2.Stream
-        .emit(io.circe.parser.parse(exampleTweet))
+      val tweetParser = fs2.Stream(exampleTweet)
+        .through(_root_.io.circe.fs2.stringStreamParser)
         .covary[IO]
-        .through(Client.tweetPipe)
+        .through(Client.tweetPipeS)
         .runLast
         .unsafeRunSync()
         .get
@@ -153,10 +154,10 @@ class ModelSpec extends Specification {
     }
 
     "fail to decode a delete response" in {
-      val tweetParser = fs2.Stream
-        .emit(io.circe.parser.parse(deleteExample))
+      val tweetParser = fs2.Stream.emit(deleteExample)
+        .through(_root_.io.circe.fs2.stringStreamParser)
         .covary[IO]
-        .through(Client.tweetPipe)
+        .through(Client.tweetPipeS)
         .runLast
         .unsafeRunSync()
         .get
