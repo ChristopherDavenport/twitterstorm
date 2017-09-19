@@ -117,14 +117,14 @@ case class Server[F[_]](tweets: Stream[F, BasicTweet])(
         }
     }
 
-  def serve(port: Int, ip: String, topN: Int): Stream[F, Nothing] = {
+  def serve(port: Int, ip: String, topN: Int, emojiResource: String): Stream[F, Nothing] = {
     val logHeaders = true
     val logBody = true
     for {
       scheduler <- Scheduler[F](3)
       timer <- fs2.async.hold(Duration.Zero, scheduler.awakeEvery(10.millis))
       counter <- Stream.eval(fs2.async.signalOf[F, BigInt](0))
-      emojiMap <- EmojiParser.emojiMapFromFile
+      emojiMap <- EmojiParser.emojiMapFromResource(emojiResource)
       reporter <- tweets.through(StreamTweetReporter(emojiMap, topN))
       nothing <- BlazeBuilder[F] // Stream[F, Nothing] I Would love to remove deadCode Warning Here.
         .bindHttp(port, ip)
@@ -137,10 +137,8 @@ case class Server[F[_]](tweets: Stream[F, BasicTweet])(
 
 object Server {
 
-  def serve[F[_]](port: Int, ip: String, topN: Int)
+  def serve[F[_]](port: Int, ip: String, topN: Int, emojiResource: String)
                  (implicit F: Effect[F], ec: ExecutionContext): Sink[F, BasicTweet] =
-    Server(_).serve(port, ip, topN)
-
-
+    Server(_).serve(port, ip, topN, emojiResource)
 
 }

@@ -20,11 +20,11 @@ object TwitterStormApp extends StreamApp[IO] {
       "russia", "russian"
     )
     val topN = 100
+    val emojiResource = "emoji.json"
 
-    Config
-      .loadTwitterUserAuth[IO]("twitterstorm")
+    Config.loadTwitterUserAuth[IO]("twitterstorm")
       .through(Client.clientStream(trackLarge))
-      .observeAsync(Int.MaxValue)(Server.serve(port, ip, topN))
+      .observeAsync(Int.MaxValue)(Server.serve(port, ip, topN, emojiResource))
       .drain
   }
 
