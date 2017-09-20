@@ -19,12 +19,20 @@ object TwitterStormApp extends StreamApp[IO] {
       "france", "french",
       "russia", "russian"
     )
+
+    // Config to Load from application.conf
+    val configName = "twitterstorm"
+    // Top N Elements to Measure
     val topN = 100
+    // Max Elements Queued into Queues.
+    // Currently 3 Queues of Instant which is underlied by a Long
+    val maxQueueSize = 100000
+    // Emoji Resource File - In case you would like to provide your own.
     val emojiResource = "emoji.json"
 
-    Config.loadTwitterUserAuth[IO]("twitterstorm")
+    Config.loadTwitterUserAuth[IO](configName)
       .through(Client.clientStream(trackLarge))
-      .observeAsync(Int.MaxValue)(Server.serve(port, ip, topN, emojiResource))
+      .observeAsync(Int.MaxValue)(Server.serve(port, ip, topN, maxQueueSize, emojiResource))
       .drain
   }
 

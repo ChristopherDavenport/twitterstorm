@@ -66,22 +66,20 @@ object StreamTweetReporter {
    * Am Constantly removing and adding to the queue to filter, the result is extremely jumpy.
    * Looking to get a Smoother Indication of the Size of the Queue.
    */
-  def averageTweetsPerDuration[F[_]](finiteDuration: FiniteDuration)(
+  def averagePerDuration[F[_], A](finiteDuration: FiniteDuration, timeF: A => ZonedDateTime, maxSize: Int)(
       implicit F: Effect[F],
-      ec: ExecutionContext): Pipe[F, BasicTweet, immutable.Signal[F, Int]] =
+      ec: ExecutionContext): Pipe[F, A, immutable.Signal[F, Int]] =
     tweets => {
-      def generateCorrectQueueSize(queue: Queue[F, BasicTweet]): Stream[F, Unit] = {
-        val tweetsQueued = tweets.to(queue.enqueue)
-        val currentTimeToRemove = Stream.repeatEval[F, ZonedDateTime](
-          F.delay(
-            ZonedDateTime
-              .now()
+      def generateCorrectQueueSize(queue: Queue[F, ZonedDateTime]): Stream[F, Unit] = {
+        val tweetsQueued = tweets.map(timeF).to(queue.enqueue)
+        val currentTimeToRemove = Stream.repeatEval[F, ZonedDateTime](F.delay(
+            ZonedDateTime.now()
               .minusSeconds(finiteDuration.toSeconds)
-              .minusSeconds(1))
-        )
+              .minusSeconds(1)
+        ))
         val remove = queue.dequeue
           .zip(currentTimeToRemove)
-          .filter { case (bt, zdt) => bt.created_at.isAfter(zdt) }
+          .filter { case (tweetTime, zdt) => tweetTime.isAfter(zdt) }
           .map(_._1)
           .to(queue.enqueue)
 
@@ -89,24 +87,27 @@ object StreamTweetReporter {
       }
 
       for {
-        queue <- Stream.eval(fs2.async.unboundedQueue[F, BasicTweet])
+        queue <- Stream.eval(fs2.async.circularBuffer[F, ZonedDateTime](maxSize))
         _ <- Stream(()).concurrently(generateCorrectQueueSize(queue))
       } yield {
         queue.size
       }
     }
 
-  def averageTweetsPerSecond[F[_]](
+  def averageTweetsPerSecond[F[_]](maxSize: Int)(
       implicit F: Effect[F],
-      ec: ExecutionContext): Pipe[F, BasicTweet, immutable.Signal[F, Int]] = averageTweetsPerDuration(1.second)
+      ec: ExecutionContext): Pipe[F, BasicTweet, immutable.Signal[F, Int]] =
+    averagePerDuration(1.second, _.created_at, maxSize)
 
-  def averageTweetsPerMinute[F[_]](
+  def averageTweetsPerMinute[F[_]](maxSize: Int)(
       implicit F: Effect[F],
-      ec: ExecutionContext): Pipe[F, BasicTweet, immutable.Signal[F, Int]] = averageTweetsPerDuration(1.minute)
+      ec: ExecutionContext): Pipe[F, BasicTweet, immutable.Signal[F, Int]] =
+    averagePerDuration(1.minute, _.created_at, maxSize)
 
-  def averageTweetsPerHour[F[_]](
+  def averageTweetsPerHour[F[_]](maxSize: Int)(
       implicit F: Effect[F],
-      ec: ExecutionContext): Pipe[F, BasicTweet, fs2.async.immutable.Signal[F, Int]] = averageTweetsPerDuration(1.hour)
+      ec: ExecutionContext): Pipe[F, BasicTweet, fs2.async.immutable.Signal[F, Int]] =
+    averagePerDuration(1.hour, _.created_at, maxSize)
 
   def topNBy[F[_], A](f: A => List[String], n: Int = 10)(
       implicit F: Effect[F],
@@ -156,16 +157,16 @@ object StreamTweetReporter {
     topNBy(emojiNames, n)
   }
 
-  def apply[F[_]](emojiMap: Map[ByteVector, String], n : Int)(implicit F: Effect[F], ec: ExecutionContext): Pipe[F, BasicTweet, TweetReporter[F]] = s => {
+  def apply[F[_]](emojiMap: Map[ByteVector, String], n : Int, maxQueueSize: Int)(implicit F: Effect[F], ec: ExecutionContext): Pipe[F, BasicTweet, TweetReporter[F]] = s => {
     for {
       totalSignal <- s.through(totalTweetCounterSignal)
       urlsSignal <- s.through(totalUrlCounterSignal)
       pictureUrlsSignal <- s.through(totalPictureUrlCounterSignal)
       hashtagSignal <- s.through(totalHashtagCounterSignal)
       emojiContainingSignal <- s.through(totalEmojiContainingSignal(emojiMap))
-      avgTPS <- s.through(averageTweetsPerSecond)
-      avgTPM <- s.through(averageTweetsPerMinute)
-      avgTPH <- s.through(averageTweetsPerHour)
+      avgTPS <- s.through(averageTweetsPerSecond(maxQueueSize))
+      avgTPM <- s.through(averageTweetsPerMinute(maxQueueSize))
+      avgTPH <- s.through(averageTweetsPerHour(maxQueueSize))
 
       topHTs <- s.through(topNHashtags(n))
       topDs <- s.through(topNDomains(n))
