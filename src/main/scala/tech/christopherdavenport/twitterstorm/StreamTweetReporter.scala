@@ -5,7 +5,7 @@ import java.time.ZonedDateTime
 import cats.implicits._
 import cats.effect.Effect
 import com.twitter.algebird._
-import fs2.{Pipe, Stream}
+import fs2.{Pipe, Sink, Stream}
 import fs2.async._
 import fs2.async.mutable.Queue
 import org.http4s.Uri.Host
@@ -36,13 +36,11 @@ object StreamTweetReporter {
 
   def totalPictureUrlCounterSignal[F[_]: Effect](
       implicit ec: ExecutionContext): Pipe[F, BasicTweet, immutable.Signal[F, BigInt]] = {
-    def containsNPictureUrls(b: BasicTweet): BigInt = {
-      b.entities.urls.count(
-        url =>
+    def containsNPictureUrls(b: BasicTweet): BigInt =
+      b.entities.urls.count(url =>
           url.url.contains("pic.twitter") || url.url.contains("instagram") ||
-            url.expanded_url.contains("pic.twitter") || url.expanded_url
-            .contains("instagram"))
-    }
+          url.expanded_url.contains("pic.twitter") || url.expanded_url.contains("instagram")
+      )
     totalCounter(containsNPictureUrls)
   }
 
@@ -52,9 +50,8 @@ object StreamTweetReporter {
 
   def totalEmojiContainingSignal[F[_]: Effect](emojis: Map[ByteVector, String])(
       implicit ec: ExecutionContext): Pipe[F, BasicTweet, immutable.Signal[F, BigInt]] = {
-    def containsEmoji(b: BasicTweet): Boolean = {
+    def containsEmoji(b: BasicTweet): Boolean =
       emojis.keys.exists{k => ByteVector(b.text.getBytes).containsSlice(k)}
-    }
     def containsEmojiCount(b: BasicTweet): BigInt =
       if (containsEmoji(b)) BigInt(1) else BigInt(0)
 
@@ -69,26 +66,23 @@ object StreamTweetReporter {
   def averagePerDuration[F[_], A](finiteDuration: FiniteDuration, timeF: A => ZonedDateTime, maxSize: Int)(
       implicit F: Effect[F],
       ec: ExecutionContext): Pipe[F, A, immutable.Signal[F, Int]] =
-    tweets => {
-      def generateCorrectQueueSize(queue: Queue[F, ZonedDateTime]): Stream[F, Unit] = {
-        val tweetsQueued = tweets.map(timeF).to(queue.enqueue)
+    stream => {
+      def generateCorrectQueueSize(queue: Queue[F, ZonedDateTime]): Sink[F,A] = stream => {
         val currentTimeToRemove = Stream.repeatEval[F, ZonedDateTime](F.delay(
             ZonedDateTime.now()
               .minusSeconds(finiteDuration.toSeconds)
               .minusSeconds(1)
         ))
-        val remove = queue.dequeue
+        queue.dequeue
           .zip(currentTimeToRemove)
           .filter { case (tweetTime, zdt) => tweetTime.isAfter(zdt) }
           .map(_._1)
           .to(queue.enqueue)
-
-        remove.concurrently(tweetsQueued)
+          .concurrently(stream.map(timeF).to(queue.enqueue))
       }
-
       for {
         queue <- Stream.eval(fs2.async.circularBuffer[F, ZonedDateTime](maxSize))
-        _ <- Stream(()).concurrently(generateCorrectQueueSize(queue))
+        _ <- Stream(()).concurrently(stream.through(generateCorrectQueueSize(queue)))
       } yield {
         queue.size
       }
@@ -121,7 +115,6 @@ object StreamTweetReporter {
       TopNCMS.monoid(eps, delta, seed, topN)
     }
     val zero = topNCMSMonoid(n).zero
-
     hold(zero, tweets.flatMap(t => Stream.emits(f(t))).scan(zero)((cms, str) => cms + str))
   }
 
@@ -142,17 +135,14 @@ object StreamTweetReporter {
         .flatMap(_.fold(List.empty[Host])(h => List(h)))
         .map(_.value)
     }
-
     topNBy(urls, n)
   }
 
   def topNEmojis[F[_]](n: Int, emojis: Map[ByteVector, String])(
       implicit F: Effect[F],
       ec: ExecutionContext): Pipe[F, BasicTweet, fs2.async.immutable.Signal[F, TopCMS[String]]] = {
-    def emojiNames(tweet: BasicTweet): List[String] = {
-
+    def emojiNames(tweet: BasicTweet): List[String] =
       emojis.toList.filter{ case (k, _) => ByteVector(tweet.text.getBytes).containsSlice(k) }.map(_._2)
-    }
 
     topNBy(emojiNames, n)
   }
@@ -164,6 +154,7 @@ object StreamTweetReporter {
       pictureUrlsSignal <- s.through(totalPictureUrlCounterSignal)
       hashtagSignal <- s.through(totalHashtagCounterSignal)
       emojiContainingSignal <- s.through(totalEmojiContainingSignal(emojiMap))
+
       avgTPS <- s.through(averageTweetsPerSecond(maxQueueSize))
       avgTPM <- s.through(averageTweetsPerMinute(maxQueueSize))
       avgTPH <- s.through(averageTweetsPerHour(maxQueueSize))
