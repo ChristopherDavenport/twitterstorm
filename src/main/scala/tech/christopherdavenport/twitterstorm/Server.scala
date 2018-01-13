@@ -4,7 +4,7 @@ import cats.effect.Effect
 import cats.implicits._
 import org.http4s.HttpService
 import org.http4s.dsl.Http4sDsl
-import fs2.{Scheduler, Sink, Stream}
+import fs2.{Scheduler, Sink, Stream, StreamApp}
 import tech.christopherdavenport.twitterstorm.twitter.BasicTweet
 import org.http4s.server.blaze.BlazeBuilder
 import io.circe.Json
@@ -117,7 +117,7 @@ case class Server[F[_]](tweets: Stream[F, BasicTweet])(
         }
     }
 
-  def serve(port: Int, ip: String, topN: Int, maxQueueSize: Int, emojiResource: String): Stream[F, Nothing] = {
+  def serve(port: Int, ip: String, topN: Int, maxQueueSize: Int, emojiResource: String): Stream[F, StreamApp.ExitCode] = {
     val logHeaders = true
     val logBody = true
     for {
@@ -126,12 +126,12 @@ case class Server[F[_]](tweets: Stream[F, BasicTweet])(
       counter <- Stream.eval(fs2.async.signalOf[F, BigInt](0))
       emojiMap <- EmojiParser.emojiMapFromResource(emojiResource)
       reporter <- tweets.through(StreamTweetReporter(emojiMap, topN, maxQueueSize))
-      nothing <- BlazeBuilder[F] // Stream[F, Nothing] I Would love to remove deadCode Warning Here.
+      exitCode <- BlazeBuilder[F] // Stream[F, Nothing] I Would love to remove deadCode Warning Here.
         .bindHttp(port, ip)
         .mountService(service(counter, timer), "/util")
         .mountService(Logger(logHeaders, logBody)(twitterService(reporter)), "/twitter") // Logger for Console Visualization
         .serve
-    } yield nothing
+    } yield exitCode
   }
 }
 
@@ -139,6 +139,6 @@ object Server {
 
   def serve[F[_]](port: Int, ip: String, topN: Int, maxQueueSize: Int, emojiResource: String)
                  (implicit F: Effect[F], ec: ExecutionContext): Sink[F, BasicTweet] =
-    Server(_).serve(port, ip, topN, maxQueueSize, emojiResource)
+    Server(_).serve(port, ip, topN, maxQueueSize, emojiResource).map(_ => ())
 
 }

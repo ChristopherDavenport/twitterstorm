@@ -5,14 +5,14 @@ import cats.effect.Effect
 import cats.implicits._
 import fs2.{Pipe, Segment, Stream}
 import io.circe.{Json, Printer}
-import io.circe.fs2.byteStreamParserS
 import org.http4s.{Headers, MediaType, Request, Uri}
-import org.http4s.client.blaze.PooledHttp1Client
+import org.http4s.client.blaze.Http1Client
 import org.http4s.dsl.io.POST
 import org.http4s.headers.`Content-Type`
 import tech.christopherdavenport.twitterstorm.authentication._
 import tech.christopherdavenport.twitterstorm.twitter.BasicTweet
 import tech.christopherdavenport.twitterstorm.util._
+import tech.christopherdavenport.twitterstorm.util.CirceStreaming._
 
 object Client {
 
@@ -38,8 +38,8 @@ object Client {
     taS =>
       for {
         ta <- taS
-        client <- Stream.emit(PooledHttp1Client(1))
-        signedRequest <- Stream.repeatEval(F.pure(twitterStreamRequest(track))) // Endlessly Generate Requests
+        client <- Http1Client.stream[F]()
+        signedRequest <- Stream.repeatEval(F.pure(twitterStreamRequest[F](track))) // Endlessly Generate Requests
           .through(userSign(ta)) // Sign Them
         infiniteEntityBody <- client.streaming(signedRequest)(_.body.segments) // Transform to Efficient Segments
       } yield infiniteEntityBody
@@ -47,5 +47,6 @@ object Client {
   def tweetPipeS[F[_]]: Pipe[F, Json, Either[String, BasicTweet]] = _.map{ json =>
     json.as[BasicTweet].leftMap(pE => s"ParseError: ${pE.message} - ${json.pretty(Printer.noSpaces)}")
   }
+
 
 }
