@@ -9,6 +9,8 @@ import org.http4s.{Headers, MediaType, Request, Uri}
 import org.http4s.client.blaze.Http1Client
 import org.http4s.dsl.io.POST
 import org.http4s.headers.`Content-Type`
+import org.http4s.client.{Client => C}
+import tech.christopherdavenport.twitterstorm.Config.ConfigService
 import tech.christopherdavenport.twitterstorm.authentication._
 import tech.christopherdavenport.twitterstorm.twitter.BasicTweet
 import tech.christopherdavenport.twitterstorm.util._
@@ -47,6 +49,34 @@ object Client {
   def tweetPipeS[F[_]]: Pipe[F, Json, Either[String, BasicTweet]] = _.map{ json =>
     json.as[BasicTweet].leftMap(pE => s"ParseError: ${pE.message} - ${json.pretty(Printer.noSpaces)}")
   }
+
+  final case class Tracked(value: String) extends AnyVal
+
+  trait FireHose[F[_]]{
+    def spray(tracking: NonEmptyList[Tracked]): Stream[F, BasicTweet]
+  }
+
+  object FireHose{
+    def impl[F[_]](implicit C: C[F], F: Effect[F], Conf: ConfigService[F]) = for {
+      auth <- Conf.auth
+    } yield new FireHose[F] {
+      override def spray(tracking: NonEmptyList[Tracked]): Stream[F, BasicTweet] = {
+        for {
+          signedRequest <- Stream.eval(
+            userSign[F](
+              auth.consumerKey, auth.consumerSecret, auth.userKey, auth.userSecret
+            )(twitterStreamRequest(tracking.map(_.value)))
+          )
+          bodySegments <- C.streaming(signedRequest)(_.body.segments)
+        } yield bodySegments
+      }
+        .through(byteStreamParserS)
+        .through(tweetPipeS)
+        .through(filterLeft)
+    }
+  }
+
+
 
 
 }

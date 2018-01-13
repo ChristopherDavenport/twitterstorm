@@ -3,12 +3,14 @@ package tech.christopherdavenport.twitterstorm
 import cats.data.NonEmptyList
 import cats.effect.IO
 import fs2.{Stream, StreamApp}
+import org.http4s.client.blaze.Http1Client
+import tech.christopherdavenport.twitterstorm.Client.Tracked
 
 import scala.concurrent.ExecutionContext.Implicits.global
 
 object TwitterStormApp extends StreamApp[IO] {
 
-  def stream(args: List[String], requestShutdown: IO[Unit]): Stream[IO, Nothing] = {
+  def stream(args: List[String], requestShutdown: IO[Unit]): Stream[IO, StreamApp.ExitCode] = {
     val port = 8080
     val ip = "0.0.0.0"
 //    val trackSmall = NonEmptyList.of("scala", "haskell", "dev", "programming", "development", "code")
@@ -17,10 +19,8 @@ object TwitterStormApp extends StreamApp[IO] {
       "china", "chinese",
       "france", "french",
       "russia", "russian"
-    )
+    ).map(Tracked)
 
-    // Config to Load from application.conf
-    val configName = "twitterstorm"
     // Top N Elements to Measure
     val topN = 100
     // Max Elements Queued into Queues.
@@ -29,10 +29,13 @@ object TwitterStormApp extends StreamApp[IO] {
     // Emoji Resource File - In case you would like to provide your own.
     val emojiResource = "emoji.json"
 
-    Config.loadTwitterUserAuth[IO](configName)
-      .through(Client.clientStream(trackLarge))
-      .observeAsync(Int.MaxValue)(Server.serve(port, ip, topN, maxQueueSize, emojiResource))
-      .drain
+    implicit val confService = Config.impl[IO]
+
+    for {
+      client <- Http1Client.stream[IO]()
+      fireHose <- Stream.eval(Client.FireHose.impl[IO](client, IO.ioEffect, confService))
+      exitCode <- Server(fireHose.spray(trackLarge)).serve(port, ip, topN, maxQueueSize, emojiResource)
+    } yield exitCode
   }
 
 }

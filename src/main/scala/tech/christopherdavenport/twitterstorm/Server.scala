@@ -126,6 +126,7 @@ case class Server[F[_]](tweets: Stream[F, BasicTweet])(
       counter <- Stream.eval(fs2.async.signalOf[F, BigInt](0))
       emojiMap <- EmojiParser.emojiMapFromResource(emojiResource)
       reporter <- tweets.through(StreamTweetReporter(emojiMap, topN, maxQueueSize))
+      _ <- Stream.eval(fs2.async.fork(tweets.compile.drain)(F, ec))
       exitCode <- BlazeBuilder[F] // Stream[F, Nothing] I Would love to remove deadCode Warning Here.
         .bindHttp(port, ip)
         .mountService(service(counter, timer), "/util")

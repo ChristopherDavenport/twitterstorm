@@ -166,6 +166,8 @@ object StreamTweetReporter {
     } yield {
       new TweetReporter[F] {
 
+        override implicit def M_ : cats.Monad[F] = F
+
         override def totalTweets: F[BigInt] = totalSignal.get
 
         override def totalUrls: F[BigInt] = urlsSignal.get

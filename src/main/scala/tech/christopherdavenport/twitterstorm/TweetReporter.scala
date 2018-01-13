@@ -1,9 +1,10 @@
 package tech.christopherdavenport.twitterstorm
 
+import cats.Monad
 import cats.implicits._
-import cats.effect.Effect
 
-abstract class TweetReporter[F[_]](implicit F: Effect[F]) {
+trait TweetReporter[F[_]] {
+  implicit def M_ : Monad[F]
 
   def totalTweets: F[BigInt]
 
