@@ -13,11 +13,11 @@ resolvers ++= Seq(
   Resolver.sonatypeRepo("public")
 )
 
-val http4sVersion = "0.18.0-M3"
-val circeVersion = "0.9.0-M1"
-val pureConfigVersion = "0.8.0"
-val specs2Version = "4.0.0-RC4"
-val algebirdVersion = "0.13.2"
+val http4sVersion = "0.18.0-M8"
+val circeVersion = "0.9.0"
+val pureConfigVersion = "0.9.0"
+val specs2Version = "4.0.2"
+val algebirdVersion = "0.13.3"
 val scalacheckVersion = "1.13.5"
 val logBackVersion = "1.2.3"
 
@@ -29,7 +29,6 @@ libraryDependencies ++= Seq(
   "io.circe"              %% "circe-generic"       % circeVersion,
   "io.circe"              %% "circe-parser"        % circeVersion,
   "io.circe"              %% "circe-optics"        % circeVersion,
-  "io.circe"              %% "circe-fs2"           % "0.9.0-M2",
   "com.github.pureconfig" %% "pureconfig"          % pureConfigVersion,
   "com.twitter"           %% "algebird-core"       % algebirdVersion,
   "ch.qos.logback"        % "logback-classic"      % logBackVersion,

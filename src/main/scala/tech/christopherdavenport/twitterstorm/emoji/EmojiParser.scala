@@ -4,7 +4,7 @@ package emoji
 import cats.effect.{Effect, Sync}
 import cats.implicits._
 import fs2._
-import _root_.io.circe.fs2._
+import tech.christopherdavenport.twitterstorm.util.CirceStreaming._
 import scodec.bits.ByteVector
 
 import scala.util.Try
@@ -36,7 +36,8 @@ object EmojiParser {
             } yield key -> name
         }
         .unNone
-        .runLog
+        .compile
+        .toVector
         .map(_.toMap)
     )
 

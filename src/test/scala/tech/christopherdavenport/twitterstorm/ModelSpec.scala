@@ -6,6 +6,7 @@ import java.time.format.DateTimeFormatter
 import cats.effect.IO
 import org.specs2.mutable.Specification
 import tech.christopherdavenport.twitterstorm.twitter._
+import tech.christopherdavenport.twitterstorm.util.CirceStreaming._
 
 class ModelSpec extends Specification {
 
@@ -115,10 +116,11 @@ class ModelSpec extends Specification {
     "decode a valid Tweet through parsing" in {
       val tweetParser = fs2.Stream
         .emit(exampleTweet)
-        .through(_root_.io.circe.fs2.stringStreamParser)
+        .through(stringStreamParser)
         .covary[IO]
         .through(Client.tweetPipeS)
-        .runLast
+        .compile
+        .last
         .unsafeRunSync()
         .get
 
@@ -128,10 +130,11 @@ class ModelSpec extends Specification {
 
     "decode into a matching tweet" in {
       val tweetParser = fs2.Stream(exampleTweet)
-        .through(_root_.io.circe.fs2.stringStreamParser)
+        .through(stringStreamParser)
         .covary[IO]
         .through(Client.tweetPipeS)
-        .runLast
+        .compile
+        .last
         .unsafeRunSync()
         .get
 
@@ -155,10 +158,11 @@ class ModelSpec extends Specification {
 
     "fail to decode a delete response" in {
       val tweetParser = fs2.Stream.emit(deleteExample)
-        .through(_root_.io.circe.fs2.stringStreamParser)
+        .through(stringStreamParser)
         .covary[IO]
         .through(Client.tweetPipeS)
-        .runLast
+        .compile
+        .last
         .unsafeRunSync()
         .get
 

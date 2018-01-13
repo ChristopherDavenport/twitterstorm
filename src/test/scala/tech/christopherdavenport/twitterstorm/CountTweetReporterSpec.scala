@@ -34,7 +34,7 @@ class CountTweetReporterSpec extends Specification with ScalaCheck with Arbitrar
       .evalMap(_.get)
       .last
 
-    signalValue.runLast.map(_.flatten).unsafeRunSync() should_=== Some(expected)
+    signalValue.compile.last.map(_.flatten).unsafeRunSync() should_=== Some(expected)
   }
 
   def countTotalSubset[A](p: Pipe[IO, A, fs2.async.immutable.Signal[IO, BigInt]], f: A => BigInt)(
@@ -49,7 +49,7 @@ class CountTweetReporterSpec extends Specification with ScalaCheck with Arbitrar
         .evalMap(_.get)
         .last
 
-      signalValue.runLast.map(_.flatten).unsafeRunSync() should_=== Some(expected)
+      signalValue.compile.last.map(_.flatten).unsafeRunSync() should_=== Some(expected)
     }
   }
 
@@ -64,7 +64,7 @@ class CountTweetReporterSpec extends Specification with ScalaCheck with Arbitrar
         .evalMap(_.get)
         .last
 
-      signalValue.runLast.unsafeRunSync().flatten should_=== Some(listSize)
+      signalValue.compile.last.unsafeRunSync().flatten should_=== Some(listSize)
     }
   }
 

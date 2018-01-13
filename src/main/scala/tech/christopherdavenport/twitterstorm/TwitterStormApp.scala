@@ -2,8 +2,7 @@ package tech.christopherdavenport.twitterstorm
 
 import cats.data.NonEmptyList
 import cats.effect.IO
-import fs2.Stream
-import org.http4s.util.StreamApp
+import fs2.{Stream, StreamApp}
 
 import scala.concurrent.ExecutionContext.Implicits.global
 
