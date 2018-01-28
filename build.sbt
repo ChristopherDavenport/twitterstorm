@@ -13,8 +13,8 @@ resolvers ++= Seq(
   Resolver.sonatypeRepo("public")
 )
 
-val http4sVersion = "0.18.0-M8"
-val circeVersion = "0.9.0"
+val http4sVersion = "0.18.0-M9"
+val circeVersion = "0.9.1"
 val pureConfigVersion = "0.9.0"
 val specs2Version = "4.0.2"
 val algebirdVersion = "0.13.3"
